@@ -1,0 +1,18 @@
+[build]
+  publish = "build/web"
+  command = "flutter build web --release"
+
+[build.environment]
+  FLUTTER_ROOT = "/opt/flutter"
+  FLUTTER_VERSION = "3.24.0"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[context.production.environment]
+  FLUTTER_WEB_USE_SKIA = "true"
+
+[context.deploy-preview.environment]
+  FLUTTER_WEB_USE_SKIA = "true" 
