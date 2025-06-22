@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Force Firebase Cache Cleanup - SocialCard</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .section {
+        margin-bottom: 25px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #f9f9f9;
+      }
+      .section h2 {
+        margin-top: 0;
+        color: #666;
+      }
+      button {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-right: 10px;
+        margin-bottom: 10px;
+        font-weight: bold;
+      }
+      button:hover {
+        background: #c82333;
+      }
+      .success {
+        background: #28a745;
+      }
+      .success:hover {
+        background: #218838;
+      }
+      .status {
+        padding: 10px;
+        border-radius: 6px;
+        margin-top: 10px;
+      }
+      .status.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      .status.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+      .warning {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+      }
+      .step {
+        background: white;
+        padding: 15px;
+        border-left: 4px solid #007bff;
+        margin-bottom: 15px;
+      }
+      .completed {
+        border-left-color: #28a745;
+        background: #f8fff8;
+      }
+      pre {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        overflow-x: auto;
+        font-size: 12px;
+        border: 1px solid #dee2e6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔥 Force Firebase Cache Cleanup</h1>
+
+      <div class="warning">
+        <strong>⚠️ Warning:</strong> This will clear ALL browser data for this
+        domain. You'll need to log in again after this cleanup.
+      </div>
+
+      <div class="section">
+        <h2>Step 1: Clear Storage APIs</h2>
+        <button onclick="clearStorageAPIs()">Clear All Storage APIs</button>
+        <div id="storage-status"></div>
+      </div>
+
+      <div class="section">
+        <h2>Step 2: Clear Service Workers</h2>
+        <button onclick="clearServiceWorkers()">
+          Unregister Service Workers
+        </button>
+        <div id="sw-status"></div>
+      </div>
+
+      <div class="section">
+        <h2>Step 3: Clear Cache API</h2>
+        <button onclick="clearCacheAPI()">Clear Cache API</button>
+        <div id="cache-status"></div>
+      </div>
+
+      <div class="section">
+        <h2>Step 4: Clear IndexedDB</h2>
+        <button onclick="clearIndexedDB()">Clear IndexedDB</button>
+        <div id="idb-status"></div>
+      </div>
+
+      <div class="section">
+        <h2>Step 5: Force Reload</h2>
+        <button onclick="forceReload()" class="success">
+          Complete Cleanup & Reload
+        </button>
+        <div id="reload-status"></div>
+      </div>
+
+      <div class="section">
+        <h2>Manual Steps</h2>
+        <div class="step">
+          <h3>1. Browser Cache</h3>
+          <p>
+            Press <code>Ctrl+Shift+Delete</code> (Windows) or
+            <code>Cmd+Shift+Delete</code> (Mac)
+          </p>
+          <p>Select "All time" and check all boxes, then click "Clear data"</p>
+        </div>
+        <div class="step">
+          <h3>2. DevTools</h3>
+          <p>
+            Press <code>F12</code> → Application tab → Storage → "Clear storage"
+            → "Clear site data"
+          </p>
+        </div>
+        <div class="step">
+          <h3>3. Hard Refresh</h3>
+          <p>
+            Press <code>Ctrl+Shift+R</code> (Windows) or
+            <code>Cmd+Shift+R</code> (Mac)
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function showStatus(elementId, message, type = "success") {
+        const element = document.getElementById(elementId);
+        element.innerHTML = `<div class="status ${type}">${message}</div>`;
+      }
+
+      async function clearStorageAPIs() {
+        try {
+          const results = [];
+
+          // Clear localStorage
+          if (window.localStorage) {
+            const localCount = localStorage.length;
+            localStorage.clear();
+            results.push(`✅ Cleared localStorage (${localCount} items)`);
+          }
+
+          // Clear sessionStorage
+          if (window.sessionStorage) {
+            const sessionCount = sessionStorage.length;
+            sessionStorage.clear();
+            results.push(`✅ Cleared sessionStorage (${sessionCount} items)`);
+          }
+
+          // Clear all storage
+          if ("storage" in navigator && "estimate" in navigator.storage) {
+            try {
+              const usage = await navigator.storage.estimate();
+              results.push(
+                `📊 Storage used: ${(usage.usage / 1024 / 1024).toFixed(2)} MB`
+              );
+
+              if ("clear" in navigator.storage) {
+                await navigator.storage.clear();
+                results.push(`✅ Cleared navigator.storage`);
+              }
+            } catch (e) {
+              results.push(`⚠️ Storage API: ${e.message}`);
+            }
+          }
+
+          showStatus("storage-status", results.join("<br>"));
+        } catch (error) {
+          showStatus("storage-status", `❌ Error: ${error.message}`, "error");
+        }
+      }
+
+      async function clearServiceWorkers() {
+        try {
+          if ("serviceWorker" in navigator) {
+            const registrations =
+              await navigator.serviceWorker.getRegistrations();
+            const results = [];
+
+            for (const registration of registrations) {
+              await registration.unregister();
+              results.push(`✅ Unregistered: ${registration.scope}`);
+            }
+
+            if (results.length === 0) {
+              results.push("ℹ️ No service workers found");
+            }
+
+            showStatus("sw-status", results.join("<br>"));
+          } else {
+            showStatus("sw-status", "ℹ️ Service Workers not supported");
+          }
+        } catch (error) {
+          showStatus("sw-status", `❌ Error: ${error.message}`, "error");
+        }
+      }
+
+      async function clearCacheAPI() {
+        try {
+          if ("caches" in window) {
+            const cacheNames = await caches.keys();
+            const results = [];
+
+            for (const cacheName of cacheNames) {
+              await caches.delete(cacheName);
+              results.push(`✅ Deleted cache: ${cacheName}`);
+            }
+
+            if (results.length === 0) {
+              results.push("ℹ️ No caches found");
+            }
+
+            showStatus("cache-status", results.join("<br>"));
+          } else {
+            showStatus("cache-status", "ℹ️ Cache API not supported");
+          }
+        } catch (error) {
+          showStatus("cache-status", `❌ Error: ${error.message}`, "error");
+        }
+      }
+
+      async function clearIndexedDB() {
+        try {
+          if ("indexedDB" in window) {
+            const results = [];
+
+            // Get all databases (this might not work in all browsers)
+            if (indexedDB.databases) {
+              const databases = await indexedDB.databases();
+              for (const db of databases) {
+                const deleteReq = indexedDB.deleteDatabase(db.name);
+                await new Promise((resolve, reject) => {
+                  deleteReq.onsuccess = resolve;
+                  deleteReq.onerror = reject;
+                });
+                results.push(`✅ Deleted database: ${db.name}`);
+              }
+            } else {
+              // Try to delete common Firebase databases
+              const commonDBs = [
+                "firebaseLocalStorageDb",
+                "firestore",
+                "fcm_token_db",
+                "firebase-messaging-database",
+              ];
+
+              for (const dbName of commonDBs) {
+                try {
+                  const deleteReq = indexedDB.deleteDatabase(dbName);
+                  await new Promise((resolve, reject) => {
+                    deleteReq.onsuccess = () => {
+                      results.push(`✅ Deleted database: ${dbName}`);
+                      resolve();
+                    };
+                    deleteReq.onerror = () => {
+                      results.push(`ℹ️ Database not found: ${dbName}`);
+                      resolve(); // Don't reject for not found
+                    };
+                  });
+                } catch (e) {
+                  results.push(`⚠️ ${dbName}: ${e.message}`);
+                }
+              }
+            }
+
+            if (results.length === 0) {
+              results.push("ℹ️ No IndexedDB databases found");
+            }
+
+            showStatus("idb-status", results.join("<br>"));
+          } else {
+            showStatus("idb-status", "ℹ️ IndexedDB not supported");
+          }
+        } catch (error) {
+          showStatus("idb-status", `❌ Error: ${error.message}`, "error");
+        }
+      }
+
+      function forceReload() {
+        showStatus("reload-status", "Forcing page reload in 2 seconds...");
+
+        setTimeout(() => {
+          // Force reload from server, bypassing cache
+          window.location.reload(true);
+        }, 2000);
+      }
+
+      // Auto-run all cleanup on page load
+      window.addEventListener("load", () => {
+        console.log("🔥 Force Firebase cleanup page loaded");
+      });
+    </script>
+  </body>
+</html>

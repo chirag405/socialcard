@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Slug Collision Test - SocialCard</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 30px;
+      }
+      .test-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+      .test-section h2 {
+        margin-top: 0;
+        color: #666;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-right: 10px;
+        margin-bottom: 10px;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      .danger {
+        background: #dc3545;
+      }
+      .danger:hover {
+        background: #c82333;
+      }
+      .warning {
+        background: #ffc107;
+        color: #212529;
+      }
+      .warning:hover {
+        background: #e0a800;
+      }
+      input {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-right: 10px;
+        margin-bottom: 10px;
+      }
+      .log {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        overflow-y: auto;
+        max-height: 300px;
+        font-family: monospace;
+        font-size: 12px;
+        border: 1px solid #dee2e6;
+      }
+      .log-entry {
+        margin-bottom: 5px;
+        padding: 2px 0;
+      }
+      .log-success {
+        color: #28a745;
+      }
+      .log-error {
+        color: #dc3545;
+      }
+      .log-info {
+        color: #17a2b8;
+      }
+      .log-warning {
+        color: #ffc107;
+      }
+      .stats {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+      }
+      .stat {
+        background: #e9ecef;
+        padding: 10px 15px;
+        border-radius: 6px;
+        text-align: center;
+      }
+      .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #495057;
+      }
+      .stat-label {
+        font-size: 12px;
+        color: #6c757d;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔥 Slug Collision Test Suite</h1>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" id="totalTests">0</div>
+          <div class="stat-label">Total Tests</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="successTests">0</div>
+          <div class="stat-label">Successful</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="failedTests">0</div>
+          <div class="stat-label">Failed</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="collisionTests">0</div>
+          <div class="stat-label">Collisions</div>
+        </div>
+      </div>
+
+      <div class="test-section">
+        <h2>Test Slug Collisions</h2>
+        <p>
+          This test simulates multiple users trying to create QR codes with the
+          same slug simultaneously.
+        </p>
+
+        <input
+          type="text"
+          id="testSlug"
+          placeholder="Enter test slug"
+          value="collision-test"
+        />
+        <input
+          type="number"
+          id="concurrentTests"
+          placeholder="Concurrent tests"
+          value="5"
+          min="2"
+          max="10"
+        />
+        <br />
+        <button onclick="runCollisionTest()" class="warning">
+          Run Collision Test
+        </button>
+        <button onclick="cleanupTestData()" class="danger">
+          Cleanup Test Data
+        </button>
+        <button onclick="clearLog()">Clear Log</button>
+
+        <div id="testLog" class="log"></div>
+      </div>
+
+      <div class="test-section">
+        <h2>Database Integrity Check</h2>
+        <p>Verify that all slugs in the database are unique.</p>
+
+        <button onclick="checkSlugUniqueness()">Check Slug Uniqueness</button>
+        <button onclick="findDuplicateSlugs()">Find Duplicate Slugs</button>
+
+        <div id="integrityLog" class="log"></div>
+      </div>
+
+      <div class="test-section">
+        <h2>Performance Test</h2>
+        <p>Test slug generation and availability checking performance.</p>
+
+        <input
+          type="number"
+          id="performanceTests"
+          placeholder="Number of tests"
+          value="100"
+          min="10"
+          max="1000"
+        />
+        <br />
+        <button onclick="runPerformanceTest()">Run Performance Test</button>
+
+        <div id="performanceLog" class="log"></div>
+      </div>
+    </div>
+
+    <script>
+      const SUPABASE_URL = "https://jcovcivzcqgfxcxlzjfp.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impjb3ZjaXZ6Y3FnZnhjeGx6amZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ4NzA1NjIsImV4cCI6MjA1MDQ0NjU2Mn0.VwzYcxJTp3cQwZyBNRlYBZJQz7kQzCb8zRzVJQkJxWo";
+
+      const supabase = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+      );
+
+      let testStats = {
+        total: 0,
+        success: 0,
+        failed: 0,
+        collisions: 0,
+      };
+
+      function updateStats() {
+        document.getElementById("totalTests").textContent = testStats.total;
+        document.getElementById("successTests").textContent = testStats.success;
+        document.getElementById("failedTests").textContent = testStats.failed;
+        document.getElementById("collisionTests").textContent =
+          testStats.collisions;
+      }
+
+      function log(message, type = "info", targetLog = "testLog") {
+        const logElement = document.getElementById(targetLog);
+        const entry = document.createElement("div");
+        entry.className = `log-entry log-${type}`;
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logElement.appendChild(entry);
+        logElement.scrollTop = logElement.scrollHeight;
+      }
+
+      function clearLog() {
+        document.getElementById("testLog").innerHTML = "";
+        testStats = { total: 0, success: 0, failed: 0, collisions: 0 };
+        updateStats();
+      }
+
+      async function createTestQrConfig(slug, testId) {
+        const testConfig = {
+          id: `test-collision-${testId}-${Date.now()}`,
+          user_id: "379dc5cf-4f1d-4abc-a6e4-f0142194341a", // Your user ID
+          link_slug: slug,
+          description: `Collision test config ${testId}`,
+          selected_link_ids: [],
+          qr_customization: {
+            foregroundColor: "#000000",
+            backgroundColor: "#ffffff",
+            eyeStyle: "square",
+            dataModuleStyle: "square",
+          },
+          expiry_settings: {
+            expiryDate: null,
+            maxScans: null,
+            isOneTime: false,
+          },
+          is_active: true,
+          scan_count: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        try {
+          const { data, error } = await supabase
+            .from("qr_configs")
+            .insert(testConfig)
+            .select()
+            .single();
+
+          if (error) throw error;
+          return { success: true, data, testId };
+        } catch (error) {
+          return { success: false, error: error.message, testId };
+        }
+      }
+
+      async function runCollisionTest() {
+        const slug = document.getElementById("testSlug").value.trim();
+        const concurrentTests = parseInt(
+          document.getElementById("concurrentTests").value
+        );
+
+        if (!slug) {
+          log("Please enter a test slug", "error");
+          return;
+        }
+
+        log(`🔥 Starting collision test with slug: "${slug}"`, "info");
+        log(`🔥 Running ${concurrentTests} concurrent tests...`, "info");
+
+        const startTime = Date.now();
+        const promises = [];
+
+        // Create multiple concurrent requests with the same slug
+        for (let i = 1; i <= concurrentTests; i++) {
+          promises.push(createTestQrConfig(slug, i));
+        }
+
+        try {
+          const results = await Promise.allSettled(promises);
+          const endTime = Date.now();
+
+          let successCount = 0;
+          let failureCount = 0;
+
+          results.forEach((result, index) => {
+            testStats.total++;
+
+            if (result.status === "fulfilled") {
+              const { success, data, error, testId } = result.value;
+
+              if (success) {
+                successCount++;
+                testStats.success++;
+                log(
+                  `✅ Test ${testId}: SUCCESS - Created config with ID: ${data.id}`,
+                  "success"
+                );
+              } else {
+                failureCount++;
+                if (
+                  error.includes("duplicate") ||
+                  error.includes("unique") ||
+                  error.includes("already exists")
+                ) {
+                  testStats.collisions++;
+                  log(`🔥 Test ${testId}: COLLISION - ${error}`, "warning");
+                } else {
+                  testStats.failed++;
+                  log(`❌ Test ${testId}: ERROR - ${error}`, "error");
+                }
+              }
+            } else {
+              failureCount++;
+              testStats.failed++;
+              log(`❌ Test ${index + 1}: REJECTED - ${result.reason}`, "error");
+            }
+          });
+
+          log(`🏁 Test completed in ${endTime - startTime}ms`, "info");
+          log(
+            `📊 Results: ${successCount} success, ${failureCount} failures`,
+            "info"
+          );
+
+          if (successCount === 1 && failureCount === concurrentTests - 1) {
+            log(
+              `✅ COLLISION HANDLING WORKING: Only 1 config created, others properly rejected!`,
+              "success"
+            );
+          } else if (successCount > 1) {
+            log(
+              `❌ COLLISION HANDLING FAILED: Multiple configs created with same slug!`,
+              "error"
+            );
+          } else {
+            log(
+              `⚠️ UNEXPECTED RESULT: No configs created successfully`,
+              "warning"
+            );
+          }
+
+          updateStats();
+        } catch (error) {
+          log(`❌ Test failed: ${error.message}`, "error");
+        }
+      }
+
+      async function cleanupTestData() {
+        try {
+          log("🧹 Cleaning up test data...", "info");
+
+          const { data, error } = await supabase
+            .from("qr_configs")
+            .delete()
+            .like("id", "test-collision-%");
+
+          if (error) throw error;
+
+          log(`✅ Cleanup completed. Removed test configs.`, "success");
+        } catch (error) {
+          log(`❌ Cleanup failed: ${error.message}`, "error");
+        }
+      }
+
+      async function checkSlugUniqueness() {
+        try {
+          log("🔍 Checking slug uniqueness...", "info", "integrityLog");
+
+          const { data, error } = await supabase
+            .from("qr_configs")
+            .select("link_slug")
+            .order("link_slug");
+
+          if (error) throw error;
+
+          const slugs = data.map((item) => item.link_slug);
+          const uniqueSlugs = [...new Set(slugs)];
+
+          if (slugs.length === uniqueSlugs.length) {
+            log(
+              `✅ All ${slugs.length} slugs are unique!`,
+              "success",
+              "integrityLog"
+            );
+          } else {
+            log(
+              `❌ Found ${slugs.length - uniqueSlugs.length} duplicate slugs!`,
+              "error",
+              "integrityLog"
+            );
+          }
+        } catch (error) {
+          log(
+            `❌ Uniqueness check failed: ${error.message}`,
+            "error",
+            "integrityLog"
+          );
+        }
+      }
+
+      async function findDuplicateSlugs() {
+        try {
+          log("🔍 Searching for duplicate slugs...", "info", "integrityLog");
+
+          const { data, error } = await supabase
+            .from("qr_configs")
+            .select("link_slug, id, user_id, created_at")
+            .order("link_slug");
+
+          if (error) throw error;
+
+          const slugGroups = {};
+          data.forEach((item) => {
+            if (!slugGroups[item.link_slug]) {
+              slugGroups[item.link_slug] = [];
+            }
+            slugGroups[item.link_slug].push(item);
+          });
+
+          const duplicates = Object.entries(slugGroups).filter(
+            ([slug, items]) => items.length > 1
+          );
+
+          if (duplicates.length === 0) {
+            log("✅ No duplicate slugs found!", "success", "integrityLog");
+          } else {
+            log(
+              `❌ Found ${duplicates.length} duplicate slugs:`,
+              "error",
+              "integrityLog"
+            );
+            duplicates.forEach(([slug, items]) => {
+              log(
+                `  - "${slug}": ${items.length} occurrences`,
+                "error",
+                "integrityLog"
+              );
+              items.forEach((item) => {
+                log(
+                  `    • ID: ${item.id}, User: ${item.user_id}, Created: ${item.created_at}`,
+                  "error",
+                  "integrityLog"
+                );
+              });
+            });
+          }
+        } catch (error) {
+          log(
+            `❌ Duplicate search failed: ${error.message}`,
+            "error",
+            "integrityLog"
+          );
+        }
+      }
+
+      async function runPerformanceTest() {
+        const testCount = parseInt(
+          document.getElementById("performanceTests").value
+        );
+        log(
+          `⚡ Starting performance test with ${testCount} slug generations...`,
+          "info",
+          "performanceLog"
+        );
+
+        const startTime = Date.now();
+        const slugs = [];
+
+        // Generate slugs
+        for (let i = 0; i < testCount; i++) {
+          const slug = generateTestSlug();
+          slugs.push(slug);
+        }
+
+        const generateTime = Date.now() - startTime;
+        log(
+          `✅ Generated ${testCount} slugs in ${generateTime}ms`,
+          "success",
+          "performanceLog"
+        );
+
+        // Check uniqueness
+        const uniqueSlugs = [...new Set(slugs)];
+        const duplicateCount = testCount - uniqueSlugs.length;
+
+        if (duplicateCount === 0) {
+          log(
+            `✅ All ${testCount} generated slugs are unique!`,
+            "success",
+            "performanceLog"
+          );
+        } else {
+          log(
+            `⚠️ Found ${duplicateCount} duplicate slugs in generated set`,
+            "warning",
+            "performanceLog"
+          );
+        }
+
+        log(
+          `📊 Performance: ${((testCount / generateTime) * 1000).toFixed(
+            0
+          )} slugs/second`,
+          "info",
+          "performanceLog"
+        );
+      }
+
+      function generateTestSlug() {
+        const chars =
+          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        const timestamp = Date.now().toString().slice(-5);
+        const randomPart = Array.from(
+          { length: 5 },
+          () => chars[Math.floor(Math.random() * chars.length)]
+        ).join("");
+        return randomPart + timestamp;
+      }
+
+      // Initialize
+      updateStats();
+    </script>
+  </body>
+</html>

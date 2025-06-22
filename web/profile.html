@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Version: 3.0 - Supabase Integration -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile - SocialCard Pro</title>
+    <meta
+      name="description"
+      content="View contact profile shared via SocialCard Pro"
+    />
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1976D2" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="SocialCard Pro" />
+
+    <!-- Security Headers -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="upgrade-insecure-requests"
+    />
+
+    <!-- Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .profile-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        max-width: 400px;
+        width: 100%;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .profile-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+      }
+
+      .profile-image {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        margin: 0 auto 20px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 48px;
+        font-weight: bold;
+        overflow: hidden;
+      }
+
+      .profile-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+      }
+
+      .profile-name {
+        font-size: 28px;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 8px;
+      }
+
+      .profile-email {
+        color: #666;
+        margin-bottom: 16px;
+        font-size: 16px;
+      }
+
+      .profile-bio {
+        color: #555;
+        margin-bottom: 30px;
+        line-height: 1.6;
+        font-size: 14px;
+      }
+
+      .custom-links {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .custom-link {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        padding: 16px;
+        text-decoration: none;
+        color: #333;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .custom-link:hover {
+        background: #e9ecef;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .link-icon {
+        width: 24px;
+        height: 24px;
+        background: #667eea;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 12px;
+      }
+
+      .link-text {
+        flex: 1;
+        text-align: left;
+        font-weight: 500;
+      }
+
+      .loading {
+        text-align: center;
+        color: #666;
+        padding: 40px;
+      }
+
+      .error {
+        text-align: center;
+        color: #e74c3c;
+        padding: 40px;
+      }
+
+      .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .footer {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e9ecef;
+        color: #999;
+        font-size: 12px;
+      }
+
+      .footer a {
+        color: #667eea;
+        text-decoration: none;
+      }
+
+      @media (max-width: 480px) {
+        .profile-card {
+          padding: 30px 20px;
+          margin: 10px;
+        }
+
+        .profile-name {
+          font-size: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="profile-card">
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Loading profile...</p>
+      </div>
+
+      <div id="error" class="error" style="display: none">
+        <p>Profile not found or no longer available.</p>
+      </div>
+
+      <div id="profile-content" style="display: none">
+        <div class="profile-image" id="profileImage">
+          <span id="profileInitial"></span>
+        </div>
+
+        <h1 class="profile-name" id="profileName"></h1>
+        <p class="profile-email" id="profileEmail"></p>
+        <p class="profile-bio" id="profileBio" style="display: none"></p>
+
+        <div class="custom-links" id="customLinks"></div>
+
+        <div class="footer">
+          <p>Shared via <a href="/">SocialCard Pro</a></p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // TODO: Replace with your actual Supabase configuration
+      // TODO: Replace with your actual Supabase configuration
+      const SUPABASE_URL = "YOUR_SUPABASE_URL_HERE";
+      const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY_HERE";
+
+      // Initialize Supabase client
+      const supabase = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+      );
+
+      async function loadProfile() {
+        try {
+          console.log("🔗 Starting profile load...");
+
+          // Get slug from URL
+          const urlParams = new URLSearchParams(window.location.search);
+          const slug =
+            urlParams.get("slug") || window.location.pathname.split("/").pop();
+
+          if (!slug || slug === "profile.html") {
+            throw new Error("No profile slug provided");
+          }
+
+          console.log("🔗 Loading profile for slug:", slug);
+
+          // Get QR config by slug
+          const { data: qrConfig, error: configError } = await supabase
+            .from("qr_configs")
+            .select("*")
+            .eq("link_slug", slug)
+            .eq("is_active", true)
+            .single();
+
+          if (configError) {
+            console.error("🔗 Error loading QR config:", configError);
+            throw new Error("QR configuration not found");
+          }
+
+          if (!qrConfig) {
+            throw new Error("QR configuration not found or inactive");
+          }
+
+          console.log("🔗 QR config loaded:", qrConfig);
+
+          // Track visit
+          try {
+            await supabase.from("qr_visits").insert({
+              config_id: qrConfig.id,
+              user_agent: navigator.userAgent,
+              visited_at: new Date().toISOString(),
+            });
+
+            // Increment scan count using RPC function
+            await supabase.rpc("increment_scan_count", {
+              config_uuid: qrConfig.id,
+            });
+          } catch (visitError) {
+            console.warn("🔗 Failed to track visit:", visitError);
+            // Don't fail the whole page for visit tracking
+          }
+
+          // Get user profile with custom links
+          const { data: profile, error: profileError } = await supabase
+            .from("users")
+            .select(
+              `
+              *,
+              custom_links (*)
+            `
+            )
+            .eq("id", qrConfig.user_id)
+            .single();
+
+          if (profileError) {
+            console.error("🔗 Error loading profile:", profileError);
+            throw new Error("Profile not found");
+          }
+
+          console.log("🔗 Profile loaded:", profile);
+
+          // Filter custom links based on QR config selection
+          let customLinks = profile.custom_links || [];
+          if (
+            qrConfig.selected_link_ids &&
+            qrConfig.selected_link_ids.length > 0
+          ) {
+            customLinks = customLinks.filter((link) =>
+              qrConfig.selected_link_ids.includes(link.id)
+            );
+          }
+
+          // Sort by order_index
+          customLinks.sort(
+            (a, b) => (a.order_index || 0) - (b.order_index || 0)
+          );
+
+          // Display profile
+          displayProfile({
+            ...profile,
+            customLinks: customLinks,
+          });
+        } catch (error) {
+          console.error("🔗 Profile loading failed:", error);
+          showError();
+        }
+      }
+
+      function displayProfile(profile) {
+        console.log("🔗 Displaying profile:", profile);
+
+        // Hide loading, show content
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("profile-content").style.display = "block";
+
+        // Set profile image or initial
+        const profileImage = document.getElementById("profileImage");
+        const profileInitial = document.getElementById("profileInitial");
+
+        if (profile.profile_image_url) {
+          profileImage.innerHTML = `<img src="${profile.profile_image_url}" alt="Profile">`;
+        } else {
+          const initial = (profile.name || profile.email || "?")
+            .charAt(0)
+            .toUpperCase();
+          profileInitial.textContent = initial;
+        }
+
+        // Set basic info
+        document.getElementById("profileName").textContent =
+          profile.name || "Anonymous User";
+        document.getElementById("profileEmail").textContent =
+          profile.email || "";
+
+        // Set bio if available
+        if (profile.bio) {
+          const bioElement = document.getElementById("profileBio");
+          bioElement.textContent = profile.bio;
+          bioElement.style.display = "block";
+        }
+
+        // Set page title
+        document.title = `${profile.name || "Profile"} - SocialCard Pro`;
+
+        // Display custom links
+        const customLinksContainer = document.getElementById("customLinks");
+        customLinksContainer.innerHTML = "";
+
+        if (profile.customLinks && profile.customLinks.length > 0) {
+          profile.customLinks.forEach((link) => {
+            const linkElement = document.createElement("a");
+            linkElement.className = "custom-link";
+            linkElement.href = link.url;
+            linkElement.target = "_blank";
+            linkElement.rel = "noopener noreferrer";
+
+            linkElement.innerHTML = `
+              <div class="link-icon">🔗</div>
+              <div class="link-text">${link.display_name}</div>
+            `;
+
+            customLinksContainer.appendChild(linkElement);
+          });
+        }
+
+        console.log("🔗 Profile display complete");
+      }
+
+      function showError() {
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("error").style.display = "block";
+      }
+
+      // Start loading when page loads
+      document.addEventListener("DOMContentLoaded", loadProfile);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile Debug - SocialCard Pro</title>
+
+    <!-- Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+        color: white;
+      }
+
+      .debug-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 20px;
+        backdrop-filter: blur(10px);
+      }
+
+      .debug-section {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+      }
+
+      .debug-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #fff;
+      }
+
+      .debug-content {
+        font-family: monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+        background: rgba(0, 0, 0, 0.3);
+        padding: 10px;
+        border-radius: 4px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .error {
+        color: #ff6b6b;
+      }
+
+      .success {
+        color: #51cf66;
+      }
+
+      .info {
+        color: #74c0fc;
+      }
+
+      .profile-preview {
+        background: white;
+        color: #333;
+        padding: 20px;
+        border-radius: 12px;
+        margin-top: 20px;
+        text-align: center;
+      }
+
+      .profile-image {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        margin: 0 auto 15px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 32px;
+        font-weight: bold;
+      }
+
+      .profile-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+      }
+
+      .custom-link {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 12px;
+        margin: 8px 0;
+        text-decoration: none;
+        color: #333;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="debug-container">
+      <h1>Profile Debug Tool</h1>
+
+      <div class="debug-section">
+        <div class="debug-title">🔍 Current URL & Parameters</div>
+        <div class="debug-content" id="urlInfo"></div>
+      </div>
+
+      <div class="debug-section">
+        <div class="debug-title">⚙️ Supabase Connection</div>
+        <div class="debug-content" id="supabaseInfo"></div>
+      </div>
+
+      <div class="debug-section">
+        <div class="debug-title">📋 QR Config Query</div>
+        <div class="debug-content" id="qrConfigInfo"></div>
+      </div>
+
+      <div class="debug-section">
+        <div class="debug-title">👤 Profile Query</div>
+        <div class="debug-content" id="profileInfo"></div>
+      </div>
+
+      <div class="debug-section">
+        <div class="debug-title">📊 Visit Tracking</div>
+        <div class="debug-content" id="visitInfo"></div>
+      </div>
+
+      <div id="profilePreview" class="profile-preview" style="display: none">
+        <div class="profile-image" id="profileImage">
+          <span id="profileInitial"></span>
+        </div>
+        <h2 id="profileName"></h2>
+        <p id="profileEmail"></p>
+        <div id="customLinks"></div>
+      </div>
+    </div>
+
+    <script>
+      const SUPABASE_URL = "https://jcovcivzcqgfxcxlzjfp.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impjb3ZjaXZ6Y3FnZnhjeGx6amZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1OTQyOTIsImV4cCI6MjA2NjE3MDI5Mn0.vjBWFwyd1tQFbTCWN5K2mouQyVAgMx1AdvNG1CpP5D8";
+
+      function log(section, message, type = "info") {
+        const element = document.getElementById(section);
+        const timestamp = new Date().toLocaleTimeString();
+        const className = type;
+        element.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+        console.log(`[${section}] ${message}`);
+      }
+
+      async function debugProfile() {
+        // URL Info
+        const urlParams = new URLSearchParams(window.location.search);
+        const slug =
+          urlParams.get("slug") || window.location.pathname.split("/").pop();
+        log("urlInfo", `Full URL: ${window.location.href}`);
+        log("urlInfo", `Slug parameter: ${slug}`);
+        log(
+          "urlInfo",
+          `All parameters: ${Array.from(urlParams.entries())
+            .map(([k, v]) => `${k}=${v}`)
+            .join(", ")}`
+        );
+
+        if (!slug || slug === "profile-debug.html") {
+          log("urlInfo", "ERROR: No valid slug found!", "error");
+          return;
+        }
+
+        // Supabase Connection
+        try {
+          log("supabaseInfo", "Initializing Supabase client...");
+          const supabase = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY
+          );
+          log(
+            "supabaseInfo",
+            "Supabase client created successfully",
+            "success"
+          );
+          log("supabaseInfo", `URL: ${SUPABASE_URL}`);
+          log("supabaseInfo", `Key: ${SUPABASE_ANON_KEY.substring(0, 20)}...`);
+
+          // Test connection
+          const { data, error } = await supabase
+            .from("users")
+            .select("count")
+            .limit(1);
+          if (error) {
+            log(
+              "supabaseInfo",
+              `Connection test failed: ${error.message}`,
+              "error"
+            );
+          } else {
+            log("supabaseInfo", "Connection test successful", "success");
+          }
+
+          // QR Config Query
+          log("qrConfigInfo", `Searching for QR config with slug: ${slug}`);
+          const { data: qrConfig, error: configError } = await supabase
+            .from("qr_configs")
+            .select("*")
+            .eq("link_slug", slug)
+            .eq("is_active", true);
+
+          if (configError) {
+            log("qrConfigInfo", `Query error: ${configError.message}`, "error");
+            log(
+              "qrConfigInfo",
+              `Error details: ${JSON.stringify(configError, null, 2)}`,
+              "error"
+            );
+            return;
+          }
+
+          log(
+            "qrConfigInfo",
+            `Query successful. Found ${qrConfig.length} results`
+          );
+          if (qrConfig.length === 0) {
+            log("qrConfigInfo", "No QR config found with this slug!", "error");
+
+            // Let's check what QR configs exist
+            const { data: allConfigs } = await supabase
+              .from("qr_configs")
+              .select("link_slug, is_active, user_id")
+              .limit(10);
+
+            log(
+              "qrConfigInfo",
+              `Available slugs: ${allConfigs
+                ?.map((c) => `${c.link_slug} (active: ${c.is_active})`)
+                .join(", ")}`,
+              "info"
+            );
+            return;
+          }
+
+          const config = qrConfig[0];
+          log(
+            "qrConfigInfo",
+            `Config found: ${JSON.stringify(config, null, 2)}`,
+            "success"
+          );
+
+          // Profile Query
+          log("profileInfo", `Loading profile for user: ${config.user_id}`);
+          const { data: profile, error: profileError } = await supabase
+            .from("users")
+            .select(
+              `
+              *,
+              custom_links (*)
+            `
+            )
+            .eq("id", config.user_id);
+
+          if (profileError) {
+            log(
+              "profileInfo",
+              `Profile query error: ${profileError.message}`,
+              "error"
+            );
+            log(
+              "profileInfo",
+              `Error details: ${JSON.stringify(profileError, null, 2)}`,
+              "error"
+            );
+            return;
+          }
+
+          if (!profile || profile.length === 0) {
+            log("profileInfo", "No profile found!", "error");
+            return;
+          }
+
+          const userProfile = profile[0];
+          log(
+            "profileInfo",
+            `Profile loaded: ${JSON.stringify(userProfile, null, 2)}`,
+            "success"
+          );
+
+          // Visit Tracking (non-blocking)
+          try {
+            log("visitInfo", "Attempting to track visit...");
+
+            const visitResult = await supabase.from("qr_visits").insert({
+              config_id: config.id,
+              user_agent: navigator.userAgent,
+              visited_at: new Date().toISOString(),
+            });
+
+            if (visitResult.error) {
+              log(
+                "visitInfo",
+                `Visit tracking failed: ${visitResult.error.message}`,
+                "error"
+              );
+            } else {
+              log("visitInfo", "Visit tracked successfully", "success");
+            }
+
+            // Try to increment scan count
+            const scanResult = await supabase.rpc("increment_scan_count", {
+              config_uuid: config.id,
+            });
+
+            if (scanResult.error) {
+              log(
+                "visitInfo",
+                `Scan count increment failed: ${scanResult.error.message}`,
+                "error"
+              );
+            } else {
+              log(
+                "visitInfo",
+                "Scan count incremented successfully",
+                "success"
+              );
+            }
+          } catch (visitError) {
+            log(
+              "visitInfo",
+              `Visit tracking error: ${visitError.message}`,
+              "error"
+            );
+          }
+
+          // Display Profile Preview
+          displayProfile(userProfile, config);
+        } catch (error) {
+          log("supabaseInfo", `Unexpected error: ${error.message}`, "error");
+          console.error("Full error:", error);
+        }
+      }
+
+      function displayProfile(profile, config) {
+        const preview = document.getElementById("profilePreview");
+        preview.style.display = "block";
+
+        // Profile image
+        const profileImage = document.getElementById("profileImage");
+        const profileInitial = document.getElementById("profileInitial");
+
+        if (profile.profile_image_url) {
+          profileImage.innerHTML = `<img src="${profile.profile_image_url}" alt="Profile">`;
+        } else {
+          const initial = (profile.name || profile.email || "?")
+            .charAt(0)
+            .toUpperCase();
+          profileInitial.textContent = initial;
+        }
+
+        // Basic info
+        document.getElementById("profileName").textContent =
+          profile.name || "Anonymous User";
+        document.getElementById("profileEmail").textContent =
+          profile.email || "";
+
+        // Custom links
+        const customLinksContainer = document.getElementById("customLinks");
+        let customLinks = profile.custom_links || [];
+
+        if (config.selected_link_ids && config.selected_link_ids.length > 0) {
+          customLinks = customLinks.filter((link) =>
+            config.selected_link_ids.includes(link.id)
+          );
+        }
+
+        customLinks.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+
+        customLinks.forEach((link) => {
+          const linkElement = document.createElement("a");
+          linkElement.className = "custom-link";
+          linkElement.href = link.url;
+          linkElement.target = "_blank";
+          linkElement.textContent = link.display_name;
+          customLinksContainer.appendChild(linkElement);
+        });
+      }
+
+      // Start debugging when page loads
+      document.addEventListener("DOMContentLoaded", debugProfile);
+    </script>
+  </body>
+</html>

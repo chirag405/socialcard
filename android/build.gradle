@@ -1,0 +1,33 @@
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    
+    // Configure Java version for all projects
+    plugins.withId("java") {
+        java {
+            toolchain {
+                languageVersion = JavaLanguageVersion.of(17)
+            }
+        }
+    }
+}
+
+rootProject.buildDir = '../build'
+
+// Set a common NDK version or use default if available
+gradle.beforeProject { project ->
+    if (project.extensions.findByType(com.android.build.gradle.internal.dsl.BaseAppModuleExtension)) {
+        project.android.ndkVersion = "25.1.8937393"
+    }
+}
+
+subprojects {
+    project.evaluationDependsOn(':app')
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+} 
