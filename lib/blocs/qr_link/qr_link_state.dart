@@ -112,12 +112,3 @@ class QrLinkError extends QrLinkState {
   @override
   List<Object?> get props => [message, configs];
 }
-
-class QrLinkPresetsLoaded extends QrLinkState {
-  final List<QrPreset> presets;
-
-  const QrLinkPresetsLoaded(this.presets);
-
-  @override
-  List<Object> get props => [presets];
-}

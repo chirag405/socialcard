@@ -175,9 +175,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
       if (qrConfig == null) return null;
 
       // Get user profile
-      final profile = await _supabaseService.getUserProfile(
-        qrConfig['user_id'],
-      );
+      final profile = await _supabaseService.getUserProfile(qrConfig.userId);
       return profile;
     } catch (e) {
       print('Error fetching profile: $e');

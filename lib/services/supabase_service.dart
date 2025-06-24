@@ -3,6 +3,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/user_profile.dart';
 import '../models/qr_link_config.dart';
+import '../models/saved_contact.dart';
 import '../supabase_config.dart';
 import 'dart:math';
 
@@ -22,11 +23,12 @@ class SupabaseService {
 
   final SupabaseClient _client = Supabase.instance.client;
 
-  // Configure GoogleSignIn with client ID for different platforms
+  // Configure GoogleSignIn with client ID for web
+  // TODO: Replace with your actual Google OAuth Client ID from Google Cloud Console
   late final GoogleSignIn _googleSignIn = GoogleSignIn(
     clientId:
         kIsWeb
-            ? '491082602859-5nd8u3ihd7m5guk6e4cqugp1tg0gq31l.apps.googleusercontent.com' // Keep original web client ID
+            ? '223999169006-e6kou76mhs1b592s6k57trgi899lscc3.apps.googleusercontent.com' // Replace with your new web client ID from Google Cloud Console
             : null, // For mobile, credentials come from GoogleService-Info.plist (iOS) and google-services.json (Android)
   );
 
@@ -38,32 +40,7 @@ class SupabaseService {
     await Supabase.initialize(
       url: SupabaseConfig.supabaseUrl,
       anonKey: SupabaseConfig.supabaseAnonKey,
-      authOptions: const FlutterAuthClientOptions(
-        authFlowType: AuthFlowType.pkce,
-      ),
     );
-
-    // Handle any existing auth errors gracefully
-    try {
-      final session = Supabase.instance.client.auth.currentSession;
-      if (session == null) {
-        // Clear any problematic auth state
-        await _clearAuthState();
-      }
-    } catch (e) {
-      print('🔗 SupabaseService: Clearing problematic auth state: $e');
-      await _clearAuthState();
-    }
-  }
-
-  // Clear problematic authentication state
-  static Future<void> _clearAuthState() async {
-    try {
-      await Supabase.instance.client.auth.signOut();
-    } catch (e) {
-      // Ignore errors when clearing state
-      print('🔗 SupabaseService: Auth state cleared');
-    }
   }
 
   // Authentication Methods
@@ -370,15 +347,7 @@ class SupabaseService {
   // QR Link Config Methods
   Future<void> createQrLinkConfig(QrLinkConfig config) async {
     try {
-      print('🔗 SupabaseService: Creating QR config...');
-      print('🔗 SupabaseService: Config ID: ${config.id}');
-      print('🔗 SupabaseService: User ID: ${config.userId}');
-      print('🔗 SupabaseService: Slug: ${config.linkSlug}');
-
       if (currentUserId == null || currentUserId != config.userId) {
-        print(
-          '❌ SupabaseService: Unauthorized - currentUserId: $currentUserId, config.userId: ${config.userId}',
-        );
         throw Exception('Unauthorized: Cannot create config for another user');
       }
 
@@ -396,31 +365,8 @@ class SupabaseService {
         'updated_at': config.updatedAt.toIso8601String(),
       };
 
-      print('🔗 SupabaseService: Inserting config data...');
-      print('🔗 SupabaseService: Data keys: ${configData.keys.toList()}');
-
-      final response =
-          await _client.from('qr_configs').insert(configData).select();
-
-      print('✅ SupabaseService: QR config created successfully!');
-      print('🔗 SupabaseService: Response: $response');
+      await _client.from('qr_configs').insert(configData);
     } catch (e) {
-      print('❌ SupabaseService: Failed to create QR config: $e');
-      print('❌ SupabaseService: Error type: ${e.runtimeType}');
-      if (e is PostgrestException) {
-        print('❌ SupabaseService: Postgrest error code: ${e.code}');
-        print('❌ SupabaseService: Postgrest error message: ${e.message}');
-        print('❌ SupabaseService: Postgrest error details: ${e.details}');
-
-        // Check for unique constraint violation (slug already exists)
-        if (e.code == '23505' ||
-            e.message.contains('duplicate key') ||
-            e.message.contains('link_slug')) {
-          throw SlugCollisionException(
-            'The slug "${config.linkSlug}" is already taken. Please choose another.',
-          );
-        }
-      }
       throw Exception('Failed to create QR config: $e');
     }
   }
@@ -596,84 +542,21 @@ class SupabaseService {
     }
   }
 
-  // Enhanced slug availability check
+  // Check if slug is available
   Future<bool> isSlugAvailable(String slug) async {
     try {
-      print('🔗 SupabaseService: Checking slug availability: $slug');
-
-      // Check for any existing QR config with this slug (active or inactive)
-      // This is more robust than just checking active ones
       final data =
           await _client
               .from('qr_configs')
-              .select('id, is_active, user_id')
+              .select('id')
               .eq('link_slug', slug)
+              .eq('is_active', true)
               .maybeSingle();
 
-      final isAvailable = data == null;
-      print('🔗 SupabaseService: Slug "$slug" available: $isAvailable');
-
-      if (data != null) {
-        print(
-          '🔗 SupabaseService: Slug "$slug" exists - active: ${data['is_active']}, user: ${data['user_id']}',
-        );
-      }
-
-      return isAvailable;
+      return data == null;
     } catch (e) {
-      print('❌ SupabaseService: Error checking slug availability: $e');
-      return false; // Assume not available on error to be safe
+      return false;
     }
-  }
-
-  // Create QR config with automatic slug collision handling
-  Future<QrLinkConfig> createQrLinkConfigWithRetry(
-    QrLinkConfig config, {
-    int maxRetries = 3,
-  }) async {
-    for (int attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        print(
-          '🔗 SupabaseService: Attempt $attempt to create QR config with slug: ${config.linkSlug}',
-        );
-
-        await createQrLinkConfig(config);
-        return config; // Success!
-      } catch (e) {
-        if (e is SlugCollisionException) {
-          print(
-            '🔗 SupabaseService: Slug collision on attempt $attempt: ${e.message}',
-          );
-
-          if (attempt == maxRetries) {
-            // Last attempt failed, throw the error
-            rethrow;
-          }
-
-          // Generate a new slug and retry
-          final newSlug = _generateUniqueSlug(config.linkSlug);
-          config = config.copyWith(
-            linkSlug: newSlug,
-            updatedAt: DateTime.now(),
-          );
-
-          print('🔗 SupabaseService: Retrying with new slug: $newSlug');
-          continue;
-        } else {
-          // Other error, don't retry
-          rethrow;
-        }
-      }
-    }
-
-    throw Exception('Failed to create QR config after $maxRetries attempts');
-  }
-
-  // Generate a unique slug with suffix if needed
-  String _generateUniqueSlug(String originalSlug) {
-    final random = Random();
-    final suffix = random.nextInt(9999).toString().padLeft(4, '0');
-    return '$originalSlug$suffix';
   }
 
   // Visit tracking
@@ -695,111 +578,106 @@ class SupabaseService {
     }
   }
 
-  // QR Config Methods
-  Future<Map<String, dynamic>?> getQrConfigBySlug(String slug) async {
-    try {
-      print('🔗 SupabaseService: Getting QR config for slug: $slug');
-
-      final response =
-          await _client
-              .from('qr_configs')
-              .select()
-              .eq('link_slug', slug)
-              .eq('is_active', true)
-              .maybeSingle();
-
-      if (response != null) {
-        print('🔗 SupabaseService: QR config found for slug: $slug');
-      } else {
-        print('🔗 SupabaseService: No QR config found for slug: $slug');
+  // Missing method: createQrLinkConfigWithRetry
+  Future<QrLinkConfig> createQrLinkConfigWithRetry(QrLinkConfig config) async {
+    int maxRetries = 5;
+    for (int attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        await createQrLinkConfig(config);
+        return config; // Return the config after successful creation
+      } catch (e) {
+        if (e.toString().contains('slug collision') ||
+            e is SlugCollisionException) {
+          if (attempt == maxRetries - 1) {
+            throw SlugCollisionException(
+              'Unable to generate unique slug after $maxRetries attempts',
+            );
+          }
+          // Generate a new slug and retry
+          config = config.copyWith(linkSlug: _generateRandomSlug());
+          continue;
+        }
+        rethrow;
       }
-
-      return response;
-    } catch (e) {
-      print('🔗 SupabaseService: Error getting QR config: $e');
-      return null;
     }
+    throw Exception('Max retries exceeded');
   }
 
-  // Saved Contacts Methods (Store in Supabase)
-  Future<void> saveScanedContact(
-    String userId,
-    String scannedUserId,
-    String? notes,
-  ) async {
-    try {
-      print(
-        '🔗 SupabaseService: Saving scanned contact: $scannedUserId for user: $userId',
-      );
+  // Missing method: getQrConfigBySlug (alias for getQrLinkConfigBySlug)
+  Future<QrLinkConfig?> getQrConfigBySlug(String slug) async {
+    return await getQrLinkConfigBySlug(slug);
+  }
 
+  // Missing method: saveScanedContact
+  Future<void> saveScanedContact(SavedContact contact) async {
+    try {
       await _client.from('saved_contacts').insert({
-        'user_id': userId,
-        'scanned_user_id': scannedUserId,
-        'scanned_at': DateTime.now().toIso8601String(),
-        'notes': notes,
+        'user_id': currentUserId,
+        'profile': contact.profile.toMap(),
+        'scanned_at': contact.scannedAt.toIso8601String(),
+        'last_updated': contact.lastUpdated?.toIso8601String(),
+        'has_updates': contact.hasUpdates,
+        'notes': contact.notes,
       });
-
-      print('🔗 SupabaseService: Scanned contact saved successfully');
     } catch (e) {
-      print('🔗 SupabaseService: Error saving scanned contact: $e');
-      throw Exception('Failed to save scanned contact: $e');
+      throw Exception('Failed to save contact: $e');
     }
   }
 
-  Future<List<Map<String, dynamic>>> getSavedContacts(String userId) async {
+  // Missing method: getSavedContacts
+  Future<List<SavedContact>> getSavedContacts() async {
     try {
-      print('🔗 SupabaseService: Getting saved contacts for user: $userId');
-
-      final response = await _client
+      final data = await _client
           .from('saved_contacts')
-          .select('''
-            *,
-            scanned_user:users!saved_contacts_scanned_user_id_fkey(*)
-          ''')
-          .eq('user_id', userId)
-          .order('scanned_at', ascending: false);
+          .select()
+          .eq('user_id', currentUserId!)
+          .order('saved_at', ascending: false);
 
-      print('🔗 SupabaseService: Retrieved ${response.length} saved contacts');
-      return response;
+      return data.map((item) => SavedContact.fromMap(item)).toList();
     } catch (e) {
-      print('🔗 SupabaseService: Error getting saved contacts: $e');
       throw Exception('Failed to get saved contacts: $e');
     }
   }
 
-  Future<void> deleteSavedContact(String userId, String scannedUserId) async {
+  // Missing method: isContactSaved
+  Future<bool> isContactSaved(String qrConfigId) async {
     try {
-      print(
-        '🔗 SupabaseService: Deleting saved contact: $scannedUserId for user: $userId',
-      );
-
-      await _client
-          .from('saved_contacts')
-          .delete()
-          .eq('user_id', userId)
-          .eq('scanned_user_id', scannedUserId);
-
-      print('🔗 SupabaseService: Saved contact deleted successfully');
-    } catch (e) {
-      print('🔗 SupabaseService: Error deleting saved contact: $e');
-      throw Exception('Failed to delete saved contact: $e');
-    }
-  }
-
-  Future<bool> isContactSaved(String userId, String scannedUserId) async {
-    try {
-      final response =
+      final data =
           await _client
               .from('saved_contacts')
               .select('id')
-              .eq('user_id', userId)
-              .eq('scanned_user_id', scannedUserId)
+              .eq('user_id', currentUserId!)
+              .eq('qr_config_id', qrConfigId)
               .maybeSingle();
 
-      return response != null;
+      return data != null;
     } catch (e) {
-      print('🔗 SupabaseService: Error checking if contact is saved: $e');
       return false;
     }
+  }
+
+  // Missing method: deleteSavedContact
+  Future<void> deleteSavedContact(String contactId) async {
+    try {
+      await _client
+          .from('saved_contacts')
+          .delete()
+          .eq('id', contactId)
+          .eq('user_id', currentUserId!);
+    } catch (e) {
+      throw Exception('Failed to delete contact: $e');
+    }
+  }
+
+  // Helper method: generate random slug
+  String _generateRandomSlug() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final random = Random();
+    return String.fromCharCodes(
+      Iterable.generate(
+        8,
+        (_) => chars.codeUnitAt(random.nextInt(chars.length)),
+      ),
+    );
   }
 }

@@ -35,7 +35,7 @@ class AuthBloc extends Bloc<AuthEvent, app_auth.AuthState> {
   ) async {
     emit(app_auth.AuthLoading());
     try {
-      final response = await _supabaseService.signInWithGoogle();
+      await _supabaseService.signInWithGoogle();
       final user = _supabaseService.currentUser;
       if (user != null) {
         emit(app_auth.AuthAuthenticated(user.id));

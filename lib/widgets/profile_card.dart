@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/user_profile.dart';
-import '../screens/profile/profile_edit_screen.dart';
+import '../screens/home/profile/profile_edit_screen.dart';
 import '../screens/qr/qr_create_screen.dart';
 
 class ProfileCard extends StatelessWidget {

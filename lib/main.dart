@@ -8,6 +8,10 @@ import 'blocs/auth/auth_event.dart';
 import 'blocs/auth/auth_state.dart';
 import 'blocs/profile/profile_bloc.dart';
 import 'blocs/qr_link/qr_link_bloc.dart';
+import 'blocs/preset/preset_bloc.dart';
+import 'blocs/scan/scan_bloc.dart';
+import 'blocs/contacts/contacts_bloc.dart';
+import 'services/contacts_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/privacy_prompt_screen.dart';
@@ -52,6 +56,9 @@ class SocialCardApp extends StatelessWidget {
         RepositoryProvider<LocalStorageService>(
           create: (context) => LocalStorageService(),
         ),
+        RepositoryProvider<ContactsService>(
+          create: (context) => ContactsService(),
+        ),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -71,6 +78,29 @@ class SocialCardApp extends StatelessWidget {
             create:
                 (context) => QrLinkBloc(
                   supabaseService: context.read<SupabaseService>(),
+                  localStorageService: context.read<LocalStorageService>(),
+                ),
+          ),
+          BlocProvider<PresetBloc>(
+            create:
+                (context) => PresetBloc(
+                  supabaseService: context.read<SupabaseService>(),
+                  localStorageService: context.read<LocalStorageService>(),
+                ),
+          ),
+          BlocProvider<ScanBloc>(
+            create:
+                (context) => ScanBloc(
+                  supabaseService: context.read<SupabaseService>(),
+                  contactsService: context.read<ContactsService>(),
+                  localStorageService: context.read<LocalStorageService>(),
+                ),
+          ),
+          BlocProvider<ContactsBloc>(
+            create:
+                (context) => ContactsBloc(
+                  supabaseService: context.read<SupabaseService>(),
+                  contactsService: context.read<ContactsService>(),
                   localStorageService: context.read<LocalStorageService>(),
                 ),
           ),

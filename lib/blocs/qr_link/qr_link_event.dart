@@ -99,26 +99,3 @@ class DeleteQrConfig extends QrLinkEvent {
   @override
   List<Object> get props => [configId];
 }
-
-class SaveQrPreset extends QrLinkEvent {
-  final String name;
-  final QrLinkConfig config;
-
-  const SaveQrPreset(this.name, this.config);
-
-  @override
-  List<Object> get props => [name, config];
-}
-
-class EditQrPreset extends QrLinkEvent {
-  final String presetId;
-  final String name;
-  final String description;
-
-  const EditQrPreset(this.presetId, this.name, this.description);
-
-  @override
-  List<Object> get props => [presetId, name, description];
-}
-
-class LoadQrPresets extends QrLinkEvent {}

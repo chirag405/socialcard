@@ -11,7 +11,7 @@ import '../../widgets/presets_drawer.dart';
 import '../../services/local_storage_service.dart';
 import '../qr/qr_create_screen.dart';
 import '../qr/qr_history_screen.dart';
-import '../profile/profile_edit_screen.dart';
+import 'profile/profile_edit_screen.dart';
 import 'profile_tab.dart';
 import 'contacts_tab.dart';
 import 'scanner_screen.dart';

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import '../../blocs/profile/profile_bloc.dart';
-import '../../blocs/profile/profile_event.dart';
-import '../../blocs/profile/profile_state.dart';
-import '../../models/user_profile.dart';
+import '../../../blocs/profile/profile_bloc.dart';
+import '../../../blocs/profile/profile_event.dart';
+import '../../../blocs/profile/profile_state.dart';
+import '../../../models/user_profile.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   final UserProfile profile;

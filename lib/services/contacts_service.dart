@@ -3,6 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../models/user_profile.dart';
+import '../models/saved_contact.dart';
 import 'supabase_service.dart';
 
 class ContactsService {
@@ -157,12 +158,24 @@ class ContactsService {
         throw Exception('User not authenticated');
       }
 
-      // Save to Supabase database
-      await _supabaseService.saveScanedContact(
-        currentUserId,
+      // Get the user profile of the scanned user
+      final scannedUserProfile = await _supabaseService.getUserProfile(
         scannedUserId,
-        notes,
       );
+      if (scannedUserProfile == null) {
+        throw Exception('Scanned user not found');
+      }
+
+      // Create SavedContact object
+      final savedContact = SavedContact(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        profile: scannedUserProfile,
+        scannedAt: DateTime.now(),
+        notes: notes,
+      );
+
+      // Save to Supabase database
+      await _supabaseService.saveScanedContact(savedContact);
     } catch (e) {
       throw Exception('Failed to save scanned contact: $e');
     }
@@ -176,26 +189,10 @@ class ContactsService {
         throw Exception('User not authenticated');
       }
 
-      final savedContacts = await _supabaseService.getSavedContacts(
-        currentUserId,
-      );
+      final savedContacts = await _supabaseService.getSavedContacts();
 
       // Convert to UserProfile objects
-      return savedContacts.map((contact) {
-        final scannedUser = contact['scanned_user'];
-        return UserProfile(
-          id: scannedUser['id'],
-          name: scannedUser['name'] ?? '',
-          email: scannedUser['email'] ?? '',
-          phone: scannedUser['phone'],
-          profileImageUrl: scannedUser['profile_image_url'],
-          bio: scannedUser['bio'],
-          customLinks: const [], // Will be loaded separately if needed
-          isDiscoverable: scannedUser['is_discoverable'] ?? true,
-          createdAt: DateTime.parse(scannedUser['created_at']),
-          updatedAt: DateTime.parse(scannedUser['updated_at']),
-        );
-      }).toList();
+      return savedContacts.map((contact) => contact.profile).toList();
     } catch (e) {
       throw Exception('Failed to get saved contacts: $e');
     }
@@ -207,10 +204,7 @@ class ContactsService {
       final currentUserId = _supabaseService.currentUserId;
       if (currentUserId == null) return false;
 
-      return await _supabaseService.isContactSaved(
-        currentUserId,
-        scannedUserId,
-      );
+      return await _supabaseService.isContactSaved(scannedUserId);
     } catch (e) {
       return false;
     }
@@ -224,7 +218,7 @@ class ContactsService {
         throw Exception('User not authenticated');
       }
 
-      await _supabaseService.deleteSavedContact(currentUserId, scannedUserId);
+      await _supabaseService.deleteSavedContact(scannedUserId);
     } catch (e) {
       throw Exception('Failed to delete saved contact: $e');
     }

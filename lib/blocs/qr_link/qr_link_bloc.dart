@@ -30,9 +30,6 @@ class QrLinkBloc extends Bloc<QrLinkEvent, QrLinkState> {
     on<QrLinkRegenerateRequested>(_onRegenerateRequested);
     on<LoadQrConfigs>(_onLoadQrConfigs);
     on<DeleteQrConfig>(_onDeleteQrConfig);
-    on<SaveQrPreset>(_onSaveQrPreset);
-    on<EditQrPreset>(_onEditQrPreset);
-    on<LoadQrPresets>(_onLoadQrPresets);
   }
 
   Future<void> _onLoadRequested(
@@ -293,91 +290,6 @@ class QrLinkBloc extends Bloc<QrLinkEvent, QrLinkState> {
       add(LoadQrConfigs());
     } catch (e) {
       emit(QrLinkError('Failed to delete QR config: $e'));
-    }
-  }
-
-  Future<void> _onSaveQrPreset(
-    SaveQrPreset event,
-    Emitter<QrLinkState> emit,
-  ) async {
-    try {
-      final userId = _supabaseService.currentUserId;
-      if (userId == null) {
-        emit(const QrLinkError('User not authenticated'));
-        return;
-      }
-
-      final now = DateTime.now();
-      final preset = QrPreset(
-        id: _uuid.v4(),
-        userId: userId,
-        name: event.name,
-        description: '', // Empty description for now
-        qrCustomization: event.config.qrCustomization,
-        expirySettings: event.config.expirySettings,
-        selectedLinkIds: event.config.selectedLinkIds,
-        createdAt: now,
-        updatedAt: now,
-      );
-
-      await _localStorageService.saveQrPreset(preset);
-
-      // Trigger preset reload for real-time updates
-      add(LoadQrPresets());
-    } catch (e) {
-      emit(QrLinkError('Failed to save preset: $e'));
-    }
-  }
-
-  Future<void> _onEditQrPreset(
-    EditQrPreset event,
-    Emitter<QrLinkState> emit,
-  ) async {
-    try {
-      final userId = _supabaseService.currentUserId;
-      if (userId == null) {
-        emit(const QrLinkError('User not authenticated'));
-        return;
-      }
-
-      final existingPreset = await _localStorageService.getQrPreset(
-        event.presetId,
-      );
-      if (existingPreset == null) {
-        emit(const QrLinkError('Preset not found'));
-        return;
-      }
-
-      final updatedPreset = existingPreset.copyWith(
-        name: event.name,
-        description: event.description,
-        updatedAt: DateTime.now(),
-      );
-
-      await _localStorageService.updateQrPreset(updatedPreset);
-
-      // Trigger preset reload for real-time updates
-      add(LoadQrPresets());
-    } catch (e) {
-      emit(QrLinkError('Failed to edit preset: $e'));
-    }
-  }
-
-  Future<void> _onLoadQrPresets(
-    LoadQrPresets event,
-    Emitter<QrLinkState> emit,
-  ) async {
-    try {
-      final userId = _supabaseService.currentUserId;
-      if (userId == null) {
-        emit(const QrLinkError('User not authenticated'));
-        return;
-      }
-
-      final presets = await _localStorageService.getAllQrPresets(userId);
-      emit(QrLinkPresetsLoaded(presets));
-    } catch (e) {
-      emit(QrLinkError('Failed to load presets: $e'));
     }
   }
 
