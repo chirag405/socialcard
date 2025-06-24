@@ -26,10 +26,8 @@ class SupabaseService {
   // Configure GoogleSignIn with client ID for web
   // TODO: Replace with your actual Google OAuth Client ID from Google Cloud Console
   late final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId:
-        kIsWeb
-            ? '223999169006-e6kou76mhs1b592s6k57trgi899lscc3.apps.googleusercontent.com' // Replace with your new web client ID from Google Cloud Console
-            : null, // For mobile, credentials come from GoogleService-Info.plist (iOS) and google-services.json (Android)
+    clientId: kIsWeb ? SupabaseConfig.googleClientIdWeb : null,
+    // For mobile, credentials come from GoogleService-Info.plist (iOS) and google-services.json (Android)
   );
 
   User? get currentUser => _client.auth.currentUser;
@@ -37,6 +35,9 @@ class SupabaseService {
 
   // Initialize Supabase
   static Future<void> initialize() async {
+    // Validate configuration before initializing
+    SupabaseConfig.initialize();
+
     await Supabase.initialize(
       url: SupabaseConfig.supabaseUrl,
       anonKey: SupabaseConfig.supabaseAnonKey,

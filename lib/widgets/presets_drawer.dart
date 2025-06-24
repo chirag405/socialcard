@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/qr_preset.dart';
-import '../blocs/qr_link/qr_link_bloc.dart';
-import '../blocs/qr_link/qr_link_event.dart';
-import '../blocs/qr_link/qr_link_state.dart';
+import '../blocs/preset/preset_bloc.dart';
+import '../blocs/preset/preset_event.dart';
+import '../blocs/preset/preset_state.dart';
+import '../services/supabase_service.dart';
 
 class PresetsDrawer extends StatefulWidget {
   final Function(QrPreset) onPresetSelected;
@@ -19,7 +20,11 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
   void initState() {
     super.initState();
     // Load presets when drawer opens
-    context.read<QrLinkBloc>().add(LoadQrPresets());
+    final supabaseService = SupabaseService();
+    final userId = supabaseService.currentUserId;
+    if (userId != null) {
+      context.read<PresetBloc>().add(PresetLoadRequested(userId));
+    }
   }
 
   @override
@@ -71,13 +76,13 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
 
           // Presets List with BLoC
           Expanded(
-            child: BlocBuilder<QrLinkBloc, QrLinkState>(
+            child: BlocBuilder<PresetBloc, PresetState>(
               builder: (context, state) {
-                if (state is QrLinkLoading) {
+                if (state is PresetLoading) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (state is QrLinkPresetsLoaded) {
+                if (state is PresetLoaded) {
                   final presets = state.presets;
 
                   if (presets.isEmpty) {
@@ -94,7 +99,7 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
                   );
                 }
 
-                if (state is QrLinkError) {
+                if (state is PresetError) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -118,7 +123,13 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () {
-                            context.read<QrLinkBloc>().add(LoadQrPresets());
+                            final supabaseService = SupabaseService();
+                            final userId = supabaseService.currentUserId;
+                            if (userId != null) {
+                              context.read<PresetBloc>().add(
+                                PresetLoadRequested(userId),
+                              );
+                            }
                           },
                           child: const Text('Retry'),
                         ),
@@ -373,12 +384,14 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
               ElevatedButton(
                 onPressed: () {
                   if (nameController.text.trim().isNotEmpty) {
-                    context.read<QrLinkBloc>().add(
-                      EditQrPreset(
-                        preset.id,
-                        nameController.text.trim(),
-                        descriptionController.text.trim(),
-                      ),
+                    final updatedPreset = preset.copyWith(
+                      name: nameController.text.trim(),
+                      description: descriptionController.text.trim(),
+                      updatedAt: DateTime.now(),
+                    );
+
+                    context.read<PresetBloc>().add(
+                      PresetUpdateRequested(updatedPreset),
                     );
                     Navigator.pop(context);
 
@@ -411,7 +424,9 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  context.read<QrLinkBloc>().add(DeleteQrConfig(preset.id));
+                  context.read<PresetBloc>().add(
+                    PresetDeleteRequested(preset.id),
+                  );
                   Navigator.pop(context);
 
                   ScaffoldMessenger.of(context).showSnackBar(

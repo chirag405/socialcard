@@ -234,11 +234,13 @@
       </div>
     </div>
 
+    <script src="config.js"></script>
     <script>
-      // TODO: Replace with your actual Supabase configuration
-      // TODO: Replace with your actual Supabase configuration
-      const SUPABASE_URL = "YOUR_SUPABASE_URL_HERE";
-      const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY_HERE";
+      // Initialize secure configuration
+      window.SocialCardConfig.init();
+
+      const SUPABASE_URL = window.SocialCardConfig.SUPABASE_URL;
+      const SUPABASE_ANON_KEY = window.SocialCardConfig.SUPABASE_ANON_KEY;
 
       // Initialize Supabase client
       const supabase = window.supabase.createClient(

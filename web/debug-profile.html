@@ -72,9 +72,13 @@
       <div id="customLinks"></div>
     </div>
 
+    <script src="config.js"></script>
     <script>
-      const SUPABASE_URL = "YOUR_SUPABASE_URL_HERE";
-      const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY_HERE";
+      // Initialize configuration
+      window.SocialCardConfig.init();
+
+      const SUPABASE_URL = window.SocialCardConfig.SUPABASE_URL;
+      const SUPABASE_ANON_KEY = window.SocialCardConfig.SUPABASE_ANON_KEY;
 
       function log(elementId, message, type = "info") {
         const element = document.getElementById(elementId);

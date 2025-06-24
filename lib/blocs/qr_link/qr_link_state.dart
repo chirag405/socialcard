@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 import '../../models/qr_link_config.dart';
-import '../../models/qr_preset.dart';
 
 abstract class QrLinkState extends Equatable {
   const QrLinkState();
