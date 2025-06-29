@@ -24,7 +24,7 @@ window.SocialCardConfig = {
   get BASE_URL() {
     return this.IS_PRODUCTION
       ? "https://your-domain.com"
-      : "http://localhost:3000";
+      : "http://localhost:3001";
   },
 
   // Validation

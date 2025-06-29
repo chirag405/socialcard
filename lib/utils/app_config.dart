@@ -6,7 +6,7 @@ class AppConfig {
   // Domain Configuration
   // For development - using localhost
   static const String baseDomain =
-      'localhost:3000'; // Flutter web development port
+      'localhost:3001'; // Flutter web development port
   static const String baseUrl = 'http://$baseDomain';
 
   // For production, uncomment and update with your domain:

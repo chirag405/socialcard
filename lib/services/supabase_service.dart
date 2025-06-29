@@ -48,21 +48,18 @@ class SupabaseService {
   Future<AuthResponse?> signInWithGoogle() async {
     try {
       if (kIsWeb) {
-        // For web, use Supabase's built-in Google OAuth
+        print('🔗 SupabaseService: Starting web OAuth with Google');
+        print(
+          '🔗 SupabaseService: Redirect URL: ${SupabaseConfig.redirectUrl}',
+        );
+
+        // For web, use Supabase's built-in Google OAuth with correct redirect
         final success = await _client.auth.signInWithOAuth(
           OAuthProvider.google,
           redirectTo: SupabaseConfig.redirectUrl,
         );
 
-        if (success) {
-          // Wait for auth state change
-          await Future.delayed(const Duration(seconds: 1));
-          final user = _client.auth.currentUser;
-          if (user != null) {
-            await _createOrUpdateUserProfile(user);
-          }
-        }
-
+        print('🔗 SupabaseService: OAuth initiation success: $success');
         return null; // OAuth redirect doesn't return AuthResponse directly
       }
 

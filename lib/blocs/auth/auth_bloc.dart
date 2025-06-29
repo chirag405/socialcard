@@ -1,9 +1,15 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import '../../services/supabase_service.dart';
 import 'auth_event.dart';
 import 'auth_state.dart' as app_auth;
+
+// Platform-specific imports
+import 'auth_web_helper.dart'
+    if (dart.library.io) 'auth_mobile_helper.dart'
+    as auth_helper;
 
 class AuthBloc extends Bloc<AuthEvent, app_auth.AuthState> {
   final SupabaseService _supabaseService;
@@ -21,12 +27,60 @@ class AuthBloc extends Bloc<AuthEvent, app_auth.AuthState> {
     on<AuthPrivacySetupCompleted>(_onPrivacySetupCompleted);
   }
 
-  void _onAuthStarted(AuthStarted event, Emitter<app_auth.AuthState> emit) {
+  void _onAuthStarted(
+    AuthStarted event,
+    Emitter<app_auth.AuthState> emit,
+  ) async {
+    // Check for OAuth callback first
+    if (kIsWeb) {
+      await _handleOAuthCallback();
+    }
+
+    // Check if user is already authenticated on startup
+    final currentUser = supabase.Supabase.instance.client.auth.currentUser;
+    if (currentUser != null) {
+      print(
+        '🔗 AuthBloc: User already authenticated on startup: ${currentUser.id}',
+      );
+      add(AuthUserChanged(currentUser.id));
+    }
+
+    // Listen for auth state changes
     _authSubscription = supabase.Supabase.instance.client.auth.onAuthStateChange
         .listen((data) {
+          print(
+            '🔗 AuthBloc: Auth state changed - Event: ${data.event}, Session: ${data.session != null}',
+          );
           final user = data.session?.user;
           add(AuthUserChanged(user?.id));
         });
+  }
+
+  Future<void> _handleOAuthCallback() async {
+    try {
+      final currentUrl = auth_helper.AuthHelper.getCurrentUrl();
+      if (currentUrl.isEmpty) return; // Skip on mobile platforms
+
+      final uri = Uri.parse(currentUrl);
+      print('🔗 AuthBloc: Current URL: ${uri.toString()}');
+
+      // Check for authorization code in URL (PKCE flow)
+      if (uri.queryParameters.containsKey('code')) {
+        final code = uri.queryParameters['code'];
+        print('🔗 AuthBloc: Found authorization code: $code');
+
+        // Let Supabase handle the code exchange
+        await supabase.Supabase.instance.client.auth.getSessionFromUrl(uri);
+
+        // Clean up the URL by removing the code parameter
+        final cleanUrl = '${uri.origin}${uri.path}';
+        auth_helper.AuthHelper.replaceUrl(cleanUrl);
+
+        print('🔗 AuthBloc: OAuth callback handled, URL cleaned');
+      }
+    } catch (e) {
+      print('🔗 AuthBloc: Error handling OAuth callback: $e');
+    }
   }
 
   Future<void> _onSignInWithGoogle(
@@ -102,16 +156,28 @@ class AuthBloc extends Bloc<AuthEvent, app_auth.AuthState> {
     AuthUserChanged event,
     Emitter<app_auth.AuthState> emit,
   ) async {
-    if (event.userId != null) {
-      // Check if this is a new user who needs privacy setup
-      final isNew = await _supabaseService.isNewUser(event.userId!);
-      if (isNew) {
-        emit(app_auth.AuthNewUserPrivacyPrompt(event.userId!));
+    try {
+      if (event.userId != null) {
+        print('🔗 AuthBloc: User changed to: ${event.userId}');
+
+        // Check if this is a new user who needs privacy setup
+        final isNew = await _supabaseService.isNewUser(event.userId!);
+        print('🔗 AuthBloc: Is new user: $isNew');
+
+        if (isNew) {
+          print('🔗 AuthBloc: Emitting AuthNewUserPrivacyPrompt');
+          emit(app_auth.AuthNewUserPrivacyPrompt(event.userId!));
+        } else {
+          print('🔗 AuthBloc: Emitting AuthAuthenticated');
+          emit(app_auth.AuthAuthenticated(event.userId!));
+        }
       } else {
-        emit(app_auth.AuthAuthenticated(event.userId!));
+        print('🔗 AuthBloc: User signed out, emitting AuthUnauthenticated');
+        emit(app_auth.AuthUnauthenticated());
       }
-    } else {
-      emit(app_auth.AuthUnauthenticated());
+    } catch (e) {
+      print('🔗 AuthBloc: Error in _onUserChanged: $e');
+      emit(app_auth.AuthError('Authentication error: $e'));
     }
   }
 

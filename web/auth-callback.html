@@ -46,28 +46,56 @@
     </div>
 
     <script>
-      // Get the current URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get("code");
-      const state = urlParams.get("state");
+      console.log("🔗 Auth Callback: Processing OAuth response");
 
+      // Get the current URL parameters (both search and hash)
+      const searchParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+
+      const code = searchParams.get("code") || hashParams.get("code");
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+      const error = searchParams.get("error") || hashParams.get("error");
+
+      console.log("🔗 Auth Callback: Found params", {
+        code: !!code,
+        accessToken: !!accessToken,
+        refreshToken: !!refreshToken,
+        error: error,
+      });
+
+      if (error) {
+        console.error("🔗 Auth Callback: OAuth error:", error);
+        alert("Authentication failed: " + error);
+      }
+
+      // For implicit flow (access_token in hash)
+      if (accessToken) {
+        console.log("🔗 Auth Callback: Implicit flow detected, storing tokens");
+        sessionStorage.setItem("supabase_access_token", accessToken);
+        if (refreshToken) {
+          sessionStorage.setItem("supabase_refresh_token", refreshToken);
+        }
+      }
+
+      // For PKCE flow (code in search params)
       if (code) {
-        // Store the auth code temporarily
+        console.log("🔗 Auth Callback: PKCE flow detected, storing code");
         sessionStorage.setItem("supabase_auth_code", code);
+        const state = searchParams.get("state");
         if (state) {
           sessionStorage.setItem("supabase_auth_state", state);
         }
-
-        // Redirect to main app
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 1000);
-      } else {
-        // No code found, redirect to main app anyway
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 2000);
       }
+
+      // Redirect to main app - use current origin to handle different ports
+      setTimeout(() => {
+        const origin = window.location.origin.includes("3001")
+          ? "http://localhost:3001"
+          : "http://localhost:3000";
+        console.log("🔗 Auth Callback: Redirecting to:", origin);
+        window.location.href = origin + "/";
+      }, 500);
     </script>
   </body>
 </html>
