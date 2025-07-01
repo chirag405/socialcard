@@ -36,7 +36,7 @@ class SupabaseService {
   // Initialize Supabase
   static Future<void> initialize() async {
     // Validate configuration before initializing
-    SupabaseConfig.initialize();
+    SupabaseConfig.validateConfig();
 
     await Supabase.initialize(
       url: SupabaseConfig.supabaseUrl,
