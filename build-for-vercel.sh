@@ -22,7 +22,6 @@ cd "$PROJECT_ROOT"
 echo "🔨 Building Flutter web app..."
 flutter build web \
     --release \
-    --web-renderer html \
     --dart-define=SUPABASE_URL=$SUPABASE_URL \
     --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
     --dart-define=GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
