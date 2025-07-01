@@ -4,6 +4,7 @@
   "framework": null,
   "buildCommand": "bash ./build-for-vercel.sh",
   "outputDirectory": "build/web",
+  "installCommand": "echo 'Dependencies will be installed during build'",
   "devCommand": "flutter run -d web-server --web-port 3000",
   "public": false,
   "rewrites": [
