@@ -13,7 +13,7 @@ export PUB_CACHE="/tmp/.pub_cache"
 
 # Build the web app with environment variables
 echo "🔨 Building Flutter web app..."
-flutter build web \
+flutter --disable-root-warning build web \
     --release \
     --web-renderer html \
     --dart-define=SUPABASE_URL=$SUPABASE_URL \

@@ -20,9 +20,9 @@ else
     export PUB_CACHE="/tmp/.pub_cache"
     
     # Basic Flutter setup
-    flutter config --no-analytics
-    flutter config --enable-web
-    flutter precache --web
+    flutter --disable-root-warning config --no-analytics
+    flutter --disable-root-warning config --enable-web
+    flutter --disable-root-warning precache --web
     
     echo "✅ Flutter installed successfully"
 fi
@@ -33,7 +33,7 @@ export PUB_CACHE="/tmp/.pub_cache"
 
 # Get dependencies
 echo "📚 Getting project dependencies..."
-flutter pub get
+flutter --disable-root-warning pub get
 
 echo "✅ Ready to build!"
-flutter --version 
+flutter --disable-root-warning --version 
