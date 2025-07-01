@@ -7,10 +7,10 @@
   "installCommand": "flutter pub get",
   "devCommand": "flutter run -d web-server --web-port 3000",
   "public": false,
-  "routes": [
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "env": {
