@@ -20,6 +20,12 @@ cd "$PROJECT_ROOT"
 
 # Build the web app with environment variables
 echo "🔨 Building Flutter web app..."
+echo "🌐 Environment variables:"
+echo "  SUPABASE_URL: ${SUPABASE_URL:0:30}..."
+echo "  SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:0:20}..."
+echo "  GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:0:30}..."
+
+# Build release version
 flutter build web \
     --release \
     --dart-define=SUPABASE_URL=$SUPABASE_URL \

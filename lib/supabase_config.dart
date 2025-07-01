@@ -1,44 +1,67 @@
-/// Supabase configuration for SocialCard Pro
-///
-/// This configuration uses local development credentials.
-/// For production, use environment variables.
+/// Production Supabase configuration
+/// This file uses environment variables injected during build
+
 class SupabaseConfig {
-  // Local development credentials
-  static const String supabaseUrl = 'https://jcovcivzcqgfxcxlzjfp.supabase.co';
-  static const String supabaseAnonKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impjb3ZjaXZ6Y3FnZnhjeGx6amZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1OTQyOTIsImV4cCI6MjA2NjE3MDI5Mn0.vjBWFwyd1tQFbTCWN5K2mouQyVAgMx1AdvNG1CpP5D8';
-  static const String googleClientIdWeb =
-      '491082602859-5nd8u3ihd7m5guk6e4cqugp1tg0gq31l.apps.googleusercontent.com';
-
-  // Environment detection
-  static const bool isProduction = bool.fromEnvironment(
-    'PRODUCTION',
-    defaultValue: false,
+  /// Get Supabase URL from environment variables (injected via --dart-define)
+  static const String supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://your-project.supabase.co',
   );
-  static bool get isDevelopment => !isProduction;
 
-  // URLs
-  static String get baseUrl =>
-      isProduction ? 'https://your-domain.com' : 'http://localhost:3001';
-  static String get redirectUrl =>
-      isProduction ? 'https://your-domain.com' : 'http://localhost:3001';
+  /// Get Supabase anonymous key from environment variables (injected via --dart-define)
+  static const String supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: 'your-anon-key-here',
+  );
 
-  // Authentication configuration
+  /// Get Google Client ID from environment variables (injected via --dart-define)
+  static const String googleClientIdWeb = String.fromEnvironment(
+    'GOOGLE_CLIENT_ID',
+    defaultValue: 'your-google-client-id-here',
+  );
+
+  // ===== ENVIRONMENT CONFIGURATION =====
+
+  /// Production environment
+  static const bool isProduction = true;
+
+  /// Production redirect URL - dynamically determined
+  static String get redirectUrl {
+    // For web deployment, use the current origin
+    if (identical(0, 0.0)) {
+      // This is a compile-time check for web
+      return '${Uri.base.origin}/auth-callback.html';
+    }
+    return 'https://socialcard-pro.vercel.app/auth-callback.html';
+  }
+
+  /// Authentication configuration
   static const Map<String, String> authConfig = {
     'flowType': 'pkce', // More secure than implicit flow
   };
 
-  /// Initialize and validate configuration
-  static void initialize() {
-    // Configuration is now embedded, so just print status
-    if (isDevelopment) {
-      print('📱 SocialCard Pro - Development Mode');
-      print('   Supabase URL: $supabaseUrl');
-      print('   Configured: ✅');
-    }
-  }
+  // ===== VALIDATION =====
 
   /// Check if configuration is properly set up
-  static bool get isConfigured =>
-      supabaseUrl.startsWith('https://') && supabaseAnonKey.startsWith('eyJ');
+  static bool get isConfigured {
+    return supabaseUrl != 'https://your-project.supabase.co' &&
+        supabaseAnonKey != 'your-anon-key-here' &&
+        supabaseUrl.startsWith('https://') &&
+        supabaseAnonKey.isNotEmpty;
+  }
+
+  /// Validate configuration and print helpful info
+  static void validateConfig() {
+    print('🔧 Supabase Configuration:');
+    print('  URL: ${supabaseUrl.substring(0, 20)}...');
+    print('  Key: ${supabaseAnonKey.substring(0, 10)}...');
+    print('  Configured: $isConfigured');
+
+    if (!isConfigured) {
+      print('⚠️  Warning: Supabase not fully configured');
+      print('   This may limit app functionality');
+    } else {
+      print('✅ Supabase configuration looks good');
+    }
+  }
 }
