@@ -4,12 +4,19 @@ set -e
 
 echo "🚀 Building SocialCard Pro for Vercel..."
 
+# Get the project root directory
+PROJECT_ROOT=$(pwd)
+echo "📁 Project root: $PROJECT_ROOT"
+
 # Install Flutter
 bash ./install-flutter-optimized.sh
 
 # Export Flutter to PATH
 export PATH="/tmp/flutter/bin:$PATH"
 export PUB_CACHE="/tmp/.pub_cache"
+
+# Ensure we're in the project directory
+cd "$PROJECT_ROOT"
 
 # Build the web app with environment variables
 echo "🔨 Building Flutter web app..."

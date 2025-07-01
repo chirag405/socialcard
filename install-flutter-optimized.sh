@@ -4,6 +4,10 @@ set -e
 
 echo "🚀 Installing Flutter for Vercel (Optimized)..."
 
+# Save the current directory (project root)
+PROJECT_ROOT=$(pwd)
+echo "📁 Working from project root: $PROJECT_ROOT"
+
 # Check if Flutter is already installed and cached
 if [ -d "/tmp/flutter" ] && [ -x "/tmp/flutter/bin/flutter" ]; then
     echo "✅ Flutter found in cache"
@@ -31,8 +35,9 @@ fi
 export PATH="/tmp/flutter/bin:$PATH"
 export PUB_CACHE="/tmp/.pub_cache"
 
-# Get dependencies
+# Get dependencies (ensure we're in the project directory)
 echo "📚 Getting project dependencies..."
+cd "$PROJECT_ROOT"
 flutter pub get
 
 echo "✅ Ready to build!"
