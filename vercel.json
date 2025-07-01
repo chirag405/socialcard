@@ -18,7 +18,6 @@
   "build": {
     "env": {
       "FLUTTER_ROOT": "/tmp/flutter",
-      "PATH": "/tmp/flutter/bin:$PATH",
       "PUB_CACHE": "/tmp/.pub_cache"
     }
   },
