@@ -70,7 +70,7 @@ class AppTheme {
       ),
 
       // iOS-style cards with subtle shadows
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: lightSurface,
         elevation: 0,
         shadowColor: const Color(0x0D000000),
@@ -318,7 +318,7 @@ class AppTheme {
         ),
       ),
 
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: darkSurface,
         elevation: 0,
         shadowColor: const Color(0x4D000000),

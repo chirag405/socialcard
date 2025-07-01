@@ -2,7 +2,7 @@
   "name": "socialcard-pro",
   "version": 2,
   "framework": null,
-  "buildCommand": "bash ./debug-build.sh",
+  "buildCommand": "bash ./build-for-vercel.sh",
   "outputDirectory": "build/web",
   "installCommand": "echo 'Dependencies will be installed during build'",
   "devCommand": "flutter run -d web-server --web-port 3000",
