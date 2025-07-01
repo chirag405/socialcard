@@ -54,6 +54,8 @@ analysis_options.yaml
 *.sh
 !build_vercel.ps1
 !build_vercel.sh
+!install-flutter.sh
+!install-flutter-optimized.sh
 
 # Other deployment configs
 netlify.toml

@@ -2,9 +2,9 @@
   "name": "socialcard-pro",
   "version": 2,
   "framework": null,
-  "buildCommand": "flutter build web --release --web-renderer html --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY --dart-define=GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID",
+  "buildCommand": "bash ./install-flutter-optimized.sh && export PATH=\"/tmp/flutter/bin:$PATH\" && flutter build web --release --web-renderer html --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY --dart-define=GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID",
   "outputDirectory": "build/web",
-  "installCommand": "flutter pub get",
+  "installCommand": "echo 'Flutter will be installed in buildCommand'",
   "devCommand": "flutter run -d web-server --web-port 3000",
   "public": false,
   "rewrites": [
@@ -18,8 +18,9 @@
   },
   "build": {
     "env": {
-      "FLUTTER_ROOT": "/opt/flutter",
-      "PUB_CACHE": "/vercel/.pub_cache"
+      "FLUTTER_ROOT": "/tmp/flutter",
+      "PATH": "/tmp/flutter/bin:$PATH",
+      "PUB_CACHE": "/tmp/.pub_cache"
     }
   },
   "headers": [
