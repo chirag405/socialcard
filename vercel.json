@@ -2,7 +2,7 @@
   "name": "socialcard-pro",
   "version": 2,
   "framework": null,
-  "buildCommand": "bash ./install-flutter-optimized.sh && export PATH=\"/tmp/flutter/bin:$PATH\" && flutter build web --release --web-renderer html --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY --dart-define=GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID",
+  "buildCommand": "bash ./build-for-vercel.sh",
   "outputDirectory": "build/web",
   "devCommand": "flutter run -d web-server --web-port 3000",
   "public": false,
