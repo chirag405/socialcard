@@ -57,6 +57,7 @@ analysis_options.yaml
 !install-flutter.sh
 !install-flutter-optimized.sh
 !build-for-vercel.sh
+!debug-build.sh
 
 # Other deployment configs
 netlify.toml
