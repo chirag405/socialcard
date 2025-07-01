@@ -22,7 +22,6 @@
       "PUB_CACHE": "/vercel/.pub_cache"
     }
   },
-  "functions": {},
   "headers": [
     {
       "source": "/(.*)",
