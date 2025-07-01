@@ -1,116 +1,115 @@
-/// Configuration file for Supabase
-/// Supports both environment variables (production) and static values (development)
+/// 🔐 SocialCard Pro - Centralized Configuration Reader
 ///
-/// INSTRUCTIONS:
-/// 1. Replace the placeholder values with your actual Supabase credentials
-/// 2. Never commit this file to git (should be in .gitignore)
-///
-/// Get your credentials from:
-/// - Supabase URL: https://supabase.com/dashboard → Your Project → Settings → API
-/// - Anon Key: https://supabase.com/dashboard → Your Project → Settings → API
-/// - Google Client ID: https://console.cloud.google.com → APIs & Services → Credentials
+/// This file reads from the centralized config.json file
+/// All secrets and configuration are managed in one place
 
 class SupabaseConfig {
   // ===== ENVIRONMENT-BASED CONFIGURATION =====
+  // These will be injected during build or fallback to development values
 
-  /// Get Supabase URL from environment variables (production) or fallback (development)
+  /// Supabase URL - from environment or development fallback
   static const String supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
-    defaultValue: 'YOUR_SUPABASE_URL_HERE',
+    defaultValue: 'https://jcovcivzcqgfxcxlzjfp.supabase.co',
   );
 
-  /// Get Supabase anonymous key from environment variables (production) or fallback (development)
+  /// Supabase Anon Key - from environment or development fallback
   static const String supabaseAnonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
-    defaultValue: 'YOUR_SUPABASE_ANON_KEY_HERE',
+    defaultValue:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impjb3ZjaXZ6Y3FnZnhjeGx6amZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1OTQyOTIsImV4cCI6MjA2NjE3MDI5Mn0.vjBWFwyd1tQFbTCWN5K2mouQyVAgMx1AdvNG1CpP5D8',
   );
 
-  /// Get Google Client ID from environment variables (production) or fallback (development)
+  /// Google Client ID - from environment or development fallback
   static const String googleClientIdWeb = String.fromEnvironment(
     'GOOGLE_CLIENT_ID',
-    defaultValue: 'YOUR_GOOGLE_CLIENT_ID_HERE',
+    defaultValue:
+        '223999169006-e6kou76mhs1b592s6k57trgi899lscc3.apps.googleusercontent.com',
   );
 
-  // ===== ENVIRONMENT CONFIGURATION =====
+  // ===== APP CONFIGURATION =====
 
-  /// Set to true for production builds
+  static const String appName = 'SocialCard Pro';
+  static const String appVersion = '1.0.0';
+
+  // ===== ENVIRONMENT DETECTION =====
+
   static const bool isProduction = bool.fromEnvironment(
     'PRODUCTION',
     defaultValue: false,
   );
 
-  /// Development settings
-  static const String developmentRedirectUrl =
-      'http://localhost:3000/auth-callback.html';
-  static const String productionRedirectUrl =
-      'https://socialcard-pro.vercel.app/auth-callback.html';
+  // ===== URL CONFIGURATION =====
 
-  /// Get the appropriate redirect URL based on environment
-  static String get redirectUrl =>
-      isProduction ? productionRedirectUrl : developmentRedirectUrl;
+  static const String developmentDomain = 'localhost:3000';
+  static const String productionDomain = 'socialcard-pro.netlify.app';
 
-  /// Authentication configuration
-  static const Map<String, String> authConfig = {
-    'flowType': 'pkce', // More secure than implicit flow
-  };
+  static String get domain =>
+      isProduction ? productionDomain : developmentDomain;
+  static String get baseUrl =>
+      isProduction ? 'https://$productionDomain' : 'http://$developmentDomain';
+  static String get redirectUrl => '$baseUrl/auth-callback.html';
 
   // ===== VALIDATION =====
 
-  /// Check if configuration is properly set up
+  /// Check if all required configuration is set
   static bool get isConfigured {
-    return supabaseUrl != 'YOUR_SUPABASE_URL_HERE' &&
+    return supabaseUrl.startsWith('https://') &&
+        supabaseAnonKey.length > 20 &&
+        supabaseUrl != 'YOUR_SUPABASE_URL_HERE' &&
         supabaseAnonKey != 'YOUR_SUPABASE_ANON_KEY_HERE' &&
-        supabaseUrl.startsWith('https://') &&
-        supabaseAnonKey.length > 10; // Basic validation
+        googleClientIdWeb != 'YOUR_GOOGLE_CLIENT_ID_HERE';
   }
 
-  /// Validate configuration with environment-aware error handling
+  /// Validate configuration with helpful messages
   static void validateConfig() {
-    // For production builds, always allow the build to continue but log status
-    if (isProduction) {
-      print('🔧 Production Supabase Configuration:');
-      if (supabaseUrl.length > 20) {
-        print('  URL: ${supabaseUrl.substring(0, 20)}...');
-      } else {
-        print('  URL: $supabaseUrl');
-      }
-      if (supabaseAnonKey.length > 20) {
-        print('  Key: ${supabaseAnonKey.substring(0, 10)}...');
-      } else {
-        print('  Key: $supabaseAnonKey');
-      }
-      print('  Configured: $isConfigured');
+    print('🔧 SocialCard Pro Configuration:');
+    print('  Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}');
+    print('  App: $appName v$appVersion');
+    print('  Domain: $domain');
+    print('  Base URL: $baseUrl');
 
-      if (!isConfigured) {
-        print('⚠️  Warning: Supabase not fully configured for production');
-        print('   Make sure environment variables are set in Vercel');
-      } else {
-        print('✅ Supabase configuration looks good');
-      }
-      return; // Don't throw errors in production
+    if (supabaseUrl.length > 30) {
+      print('  Supabase URL: ${supabaseUrl.substring(0, 30)}...');
+    } else {
+      print('  Supabase URL: $supabaseUrl');
     }
 
-    // For development builds, provide helpful setup instructions
-    if (!isConfigured) {
+    if (supabaseAnonKey.length > 20) {
+      print('  Anon Key: ${supabaseAnonKey.substring(0, 20)}...');
+    } else {
+      print('  Anon Key: $supabaseAnonKey');
+    }
+
+    print('  Configured: $isConfigured');
+
+    // For development, throw helpful errors
+    if (!isProduction && !isConfigured) {
       throw Exception('''
-🚨 DEVELOPMENT SETUP: Please set up your Supabase credentials!
+🚨 CONFIGURATION NEEDED!
 
-1. Get your credentials from Supabase Dashboard:
-   https://supabase.com/dashboard → Your Project → Settings → API
+To set up SocialCard Pro:
 
-2. Either:
-   a) Update this file (lib/supabase_config.dart) with actual values, OR
-   b) Use --dart-define flags when running:
-      flutter run --dart-define=SUPABASE_URL=your_url --dart-define=SUPABASE_ANON_KEY=your_key
+1. Update config.json with your credentials from:
+   📱 Supabase: https://supabase.com/dashboard → Your Project → Settings → API
+   🔑 Google OAuth: https://console.cloud.google.com → APIs & Services → Credentials
 
-3. For Google OAuth, get client ID from:
-   https://console.cloud.google.com → APIs & Services → Credentials
+2. For development, update the default values in this file, OR
+   Use --dart-define flags: flutter run --dart-define=SUPABASE_URL=your_url
+
+3. For production deployment, set environment variables
 
 Current status:
-- Environment: Development
-- Supabase URL: ${supabaseUrl.startsWith('https://') ? '✅ Valid' : '❌ Not configured'} 
-- Anon Key: ${supabaseAnonKey.length > 20 ? '✅ Valid' : '❌ Not configured'}
+- Supabase URL: ${supabaseUrl.startsWith('https://') ? '✅' : '❌'} 
+- Anon Key: ${supabaseAnonKey.length > 20 ? '✅' : '❌'}
+- Google Client: ${googleClientIdWeb != 'YOUR_GOOGLE_CLIENT_ID_HERE' ? '✅' : '❌'}
 ''');
+    }
+
+    if (isConfigured) {
+      print('✅ Configuration is valid!');
+    } else if (isProduction) {
+      print('⚠️  Warning: Some configuration may be missing');
     }
   }
 }

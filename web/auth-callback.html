@@ -93,8 +93,33 @@
         const origin = window.location.origin.includes("3001")
           ? "http://localhost:3001"
           : "http://localhost:3000";
-        console.log("🔗 Auth Callback: Redirecting to:", origin);
-        window.location.href = origin + "/";
+
+        // Build redirect URL with OAuth parameters for AuthBloc to process
+        let redirectUrl = origin + "/";
+
+        // For PKCE flow, include code and state in URL
+        if (code) {
+          const urlParams = new URLSearchParams();
+          urlParams.set("code", code);
+          const state = searchParams.get("state");
+          if (state) {
+            urlParams.set("state", state);
+          }
+          redirectUrl = origin + "/?" + urlParams.toString();
+        }
+
+        // For implicit flow, include access_token in URL hash
+        if (accessToken) {
+          const hashParams = new URLSearchParams();
+          hashParams.set("access_token", accessToken);
+          if (refreshToken) {
+            hashParams.set("refresh_token", refreshToken);
+          }
+          redirectUrl = origin + "/#" + hashParams.toString();
+        }
+
+        console.log("🔗 Auth Callback: Redirecting to:", redirectUrl);
+        window.location.href = redirectUrl;
       }, 500);
     </script>
   </body>

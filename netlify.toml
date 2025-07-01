@@ -1,0 +1,67 @@
+# 🚀 SocialCard Pro - Netlify Deployment Configuration
+# Simple, optimized deployment for both Flutter app and QR profile pages
+
+[build]
+  # Build command for Flutter web
+  command = "flutter build web --release --dart-define=PRODUCTION=true"
+  
+  # Output directory (Flutter web builds to build/web)
+  publish = "build/web"
+  
+  # Build environment
+  environment = { FLUTTER_ROOT = "/opt/flutter", PUB_CACHE = "/opt/flutter/.pub_cache" }
+
+# Production environment variables
+# Set these in Netlify Dashboard: Site Settings → Environment Variables
+[build.environment]
+  SUPABASE_URL = ""        # Add your Supabase URL here
+  SUPABASE_ANON_KEY = ""   # Add your Supabase anon key here  
+  GOOGLE_CLIENT_ID = ""    # Add your Google OAuth client ID here
+
+# Redirects for SPA (Single Page Application)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Role = ["admin", "editor"], Country = ["US"]}
+
+# Special handling for QR profile pages
+[[redirects]]
+  from = "/profile/:slug"
+  to = "/profile.html?slug=:slug"
+  status = 200
+
+[[redirects]]
+  from = "/qr/:slug"
+  to = "/profile.html?slug=:slug"
+  status = 200
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Cache static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"  
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Functions (if needed for server-side logic)
+[functions]
+  directory = "netlify/functions" 

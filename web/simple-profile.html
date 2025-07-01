@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Profile Test</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      .log {
+        margin: 5px 0;
+        padding: 5px;
+        background: #f0f0f0;
+      }
+      .error {
+        background: #ffebee;
+        color: #c62828;
+      }
+      .success {
+        background: #e8f5e8;
+        color: #2e7d32;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Simple Profile Test</h1>
+    <div id="logs"></div>
+
+    <script>
+      const logs = document.getElementById("logs");
+
+      function log(message, type = "info") {
+        const div = document.createElement("div");
+        div.className = `log ${type}`;
+        div.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+        logs.appendChild(div);
+        console.log(message);
+      }
+
+      async function test() {
+        try {
+          // Hardcode the values to avoid config issues
+          const SUPABASE_URL = "https://jcovcivzcqgfxcxlzjfp.supabase.co";
+          const SUPABASE_ANON_KEY =
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impjb3ZjaXZ6Y3FnZnhjeGx6amZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1OTQyOTIsImV4cCI6MjA2NjE3MDI5Mn0.vjBWFwyd1tQFbTCWN5K2mouQyVAgMx1AdvNG1CpP5D8";
+
+          log("Starting simple profile test");
+          log(`URL: ${SUPABASE_URL}`);
+          log(`Key: ${SUPABASE_ANON_KEY.substring(0, 20)}...`);
+
+          // Create client
+          const supabase = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY
+          );
+          log("Supabase client created", "success");
+
+          // Get slug
+          const urlParams = new URLSearchParams(window.location.search);
+          const slug = urlParams.get("slug") || "sdfsdfsdf";
+          log(`Testing with slug: ${slug}`);
+
+          // Test 1: Simple connection test
+          log("Test 1: Testing basic connection...");
+          try {
+            const { data, error } = await supabase
+              .from("qr_configs")
+              .select("count");
+            if (error) {
+              log(`Connection test failed: ${error.message}`, "error");
+              log(`Error details: ${JSON.stringify(error)}`, "error");
+            } else {
+              log("Basic connection successful", "success");
+            }
+          } catch (e) {
+            log(`Connection exception: ${e.message}`, "error");
+          }
+
+          // Test 2: Look for our specific slug
+          log("Test 2: Looking for QR config...");
+          try {
+            const { data: configs, error: configError } = await supabase
+              .from("qr_configs")
+              .select("*")
+              .eq("link_slug", slug);
+
+            if (configError) {
+              log(`Config query failed: ${configError.message}`, "error");
+              log(
+                `Config error details: ${JSON.stringify(configError)}`,
+                "error"
+              );
+            } else {
+              log(`Found ${configs.length} configs`, "success");
+              if (configs.length > 0) {
+                log(
+                  `Config: ${JSON.stringify(configs[0], null, 2)}`,
+                  "success"
+                );
+
+                // Test 3: Try to get user
+                const userId = configs[0].user_id;
+                log(`Test 3: Getting user ${userId}...`);
+
+                const { data: user, error: userError } = await supabase
+                  .from("users")
+                  .select("*")
+                  .eq("id", userId)
+                  .single();
+
+                if (userError) {
+                  log(`User query failed: ${userError.message}`, "error");
+                  log(
+                    `User error details: ${JSON.stringify(userError)}`,
+                    "error"
+                  );
+                } else {
+                  log(`User found: ${user.name} (${user.email})`, "success");
+                }
+              }
+            }
+          } catch (e) {
+            log(`Query exception: ${e.message}`, "error");
+          }
+        } catch (error) {
+          log(`Test failed: ${error.message}`, "error");
+        }
+      }
+
+      test();
+    </script>
+  </body>
+</html>

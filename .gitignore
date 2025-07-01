@@ -5,7 +5,6 @@
 *.swp
 .DS_Store
 .atom/
-.build/
 .buildlog/
 .history
 .svn/
@@ -44,37 +43,57 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Sensitive configuration files
-lib/supabase_config.local.dart
+# 🔐 SENSITIVE CONFIGURATION FILES - NEVER COMMIT THESE!
+# =====================================================
+
+# Centralized configuration (contains all secrets)
+config.json
+config.local.json
+config.prod.json
+
+# Flutter configuration files
 lib/supabase_config.dart
+lib/supabase_config.local.dart
+
+# Web configuration files  
+web/config.js
+web/config.local.js
+web/config.prod.js
+
+# Firebase/Google Services
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
-web/config.js
 
 # Environment files
 .env
 .env.local
 .env.production
+.env.development
 
 # API keys and secrets
 **/secrets/
 **/*secret*
 **/*key*
+**/*credentials*
+
+# 🚀 DEPLOYMENT FILES
+# ===================
+
+# Build outputs
 build/
-.dart_tool/
-.packages
-*.lock
-*.log
-*.mp4
+dist/
+.output/
+
+# Deployment artifacts
 *.zip
+*.tar.gz
 *.apk
 *.ipa
-*.DS_Store
-*.iml
-.idea/
+*.aab
+
+# Platform-specific
 android/.gradle/
-build/
-.dart_tool/
 android/build/
 android/app/build/
 ios/Flutter/
+*.lock

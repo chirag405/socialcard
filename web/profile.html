@@ -234,13 +234,11 @@
       </div>
     </div>
 
-    <script src="config.js"></script>
     <script>
-      // Initialize secure configuration
-      window.SocialCardConfig.init();
-
-      const SUPABASE_URL = window.SocialCardConfig.SUPABASE_URL;
-      const SUPABASE_ANON_KEY = window.SocialCardConfig.SUPABASE_ANON_KEY;
+      // Use direct configuration like the working simple test
+      const SUPABASE_URL = "https://jcovcivzcqgfxcxlzjfp.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impjb3ZjaXZ6Y3FnZnhjeGx6amZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1OTQyOTIsImV4cCI6MjA2NjE3MDI5Mn0.vjBWFwyd1tQFbTCWN5K2mouQyVAgMx1AdvNG1CpP5D8";
 
       // Initialize Supabase client
       const supabase = window.supabase.createClient(
@@ -252,34 +250,51 @@
         try {
           console.log("🔗 Starting profile load...");
 
+          // Show loading state
+          document.getElementById("loading").style.display = "block";
+          document.getElementById("error").style.display = "none";
+          document.getElementById("profile-content").style.display = "none";
+
           // Get slug from URL
           const urlParams = new URLSearchParams(window.location.search);
           const slug =
             urlParams.get("slug") || window.location.pathname.split("/").pop();
 
           if (!slug || slug === "profile.html") {
+            console.error("🔗 No slug provided");
             throw new Error("No profile slug provided");
           }
 
           console.log("🔗 Loading profile for slug:", slug);
+          console.log("🔗 Full URL:", window.location.href);
+          console.log("🔗 Supabase URL:", SUPABASE_URL);
+          console.log(
+            "🔗 Anon Key:",
+            SUPABASE_ANON_KEY.substring(0, 20) + "..."
+          );
 
-          // Get QR config by slug
-          const { data: qrConfig, error: configError } = await supabase
+          // Get QR config by slug (use same pattern as working simple test)
+          const { data: configs, error: configError } = await supabase
             .from("qr_configs")
             .select("*")
             .eq("link_slug", slug)
-            .eq("is_active", true)
-            .single();
+            .eq("is_active", true);
 
           if (configError) {
             console.error("🔗 Error loading QR config:", configError);
-            throw new Error("QR configuration not found");
+            console.error(
+              "🔗 Full config error:",
+              JSON.stringify(configError, null, 2)
+            );
+            throw new Error(`QR configuration error: ${configError.message}`);
           }
 
-          if (!qrConfig) {
+          if (!configs || configs.length === 0) {
+            console.error("🔗 No QR config found for slug:", slug);
             throw new Error("QR configuration not found or inactive");
           }
 
+          const qrConfig = configs[0];
           console.log("🔗 QR config loaded:", qrConfig);
 
           // Track visit
@@ -299,27 +314,37 @@
             // Don't fail the whole page for visit tracking
           }
 
-          // Get user profile with custom links
-          const { data: profile, error: profileError } = await supabase
+          // Get user profile (use same pattern as working simple test)
+          const { data: user, error: userError } = await supabase
             .from("users")
-            .select(
-              `
-              *,
-              custom_links (*)
-            `
-            )
+            .select("*")
             .eq("id", qrConfig.user_id)
             .single();
 
-          if (profileError) {
-            console.error("🔗 Error loading profile:", profileError);
-            throw new Error("Profile not found");
+          if (userError) {
+            console.error("🔗 Error loading profile:", userError);
+            console.error(
+              "🔗 Full user error:",
+              JSON.stringify(userError, null, 2)
+            );
+            throw new Error(`Profile error: ${userError.message}`);
           }
 
-          console.log("🔗 Profile loaded:", profile);
+          console.log("🔗 User found:", user.name, `(${user.email})`);
+
+          // Get custom links separately
+          const { data: allCustomLinks, error: linksError } = await supabase
+            .from("custom_links")
+            .select("*")
+            .eq("user_id", qrConfig.user_id)
+            .order("order_index");
+
+          if (linksError) {
+            console.warn("🔗 Could not load custom links:", linksError);
+          }
 
           // Filter custom links based on QR config selection
-          let customLinks = profile.custom_links || [];
+          let customLinks = allCustomLinks || [];
           if (
             qrConfig.selected_link_ids &&
             qrConfig.selected_link_ids.length > 0
@@ -329,18 +354,24 @@
             );
           }
 
-          // Sort by order_index
-          customLinks.sort(
-            (a, b) => (a.order_index || 0) - (b.order_index || 0)
-          );
+          console.log("🔗 Custom links:", customLinks.length);
 
           // Display profile
           displayProfile({
-            ...profile,
+            ...user,
             customLinks: customLinks,
           });
         } catch (error) {
           console.error("🔗 Profile loading failed:", error);
+          console.error("🔗 Error stack:", error.stack);
+
+          // Show specific error message
+          const errorDiv = document.getElementById("error");
+          errorDiv.innerHTML = `
+            <p>Profile loading failed:</p>
+            <p style="color: #ff6b6b; font-size: 14px; margin-top: 10px;">${error.message}</p>
+            <p style="color: #666; font-size: 12px; margin-top: 10px;">Check browser console for details</p>
+          `;
           showError();
         }
       }

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Profile Test - SocialCard Pro</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  </head>
+  <body>
+    <h1>Profile Loading Test</h1>
+    <div id="output"></div>
+
+    <script src="config.js"></script>
+    <script>
+      const output = document.getElementById("output");
+
+      function log(message) {
+        output.innerHTML += message + "<br>";
+        console.log(message);
+      }
+
+      async function test() {
+        try {
+          log("🔗 Starting test...");
+
+          // Initialize config
+          window.SocialCardConfig.init();
+          log("✅ Config initialized");
+
+          const SUPABASE_URL = window.SocialCardConfig.SUPABASE_URL;
+          const SUPABASE_ANON_KEY = window.SocialCardConfig.SUPABASE_ANON_KEY;
+
+          log(`📍 Supabase URL: ${SUPABASE_URL}`);
+          log(`🔑 Anon Key: ${SUPABASE_ANON_KEY.substring(0, 20)}...`);
+
+          // Create Supabase client
+          const supabase = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY
+          );
+          log("✅ Supabase client created");
+
+          // Test connection
+          log("🔍 Testing connection...");
+          const { data: users, error: userError } = await supabase
+            .from("users")
+            .select("count");
+
+          if (userError) {
+            log(`❌ User table error: ${userError.message}`);
+          } else {
+            log("✅ Users table accessible");
+          }
+
+          // Test QR configs
+          log("🔍 Testing qr_configs table...");
+          const { data: configs, error: configError } = await supabase
+            .from("qr_configs")
+            .select("count");
+
+          if (configError) {
+            log(`❌ QR configs error: ${configError.message}`);
+          } else {
+            log("✅ QR configs table accessible");
+          }
+
+          // Test specific slug
+          const testSlug = "sdfsdfsdf";
+          log(`🔍 Looking for slug: ${testSlug}`);
+
+          const { data: config, error: slugError } = await supabase
+            .from("qr_configs")
+            .select("*")
+            .eq("link_slug", testSlug)
+            .eq("is_active", true)
+            .single();
+
+          if (slugError) {
+            log(`❌ Slug query error: ${slugError.message}`);
+            log(`Full error: ${JSON.stringify(slugError, null, 2)}`);
+          } else {
+            log(`✅ Config found: ${JSON.stringify(config, null, 2)}`);
+
+            // Test user profile
+            const { data: profile, error: profileError } = await supabase
+              .from("users")
+              .select(
+                `
+                            *,
+                            custom_links (*)
+                        `
+              )
+              .eq("id", config.user_id)
+              .single();
+
+            if (profileError) {
+              log(`❌ Profile error: ${profileError.message}`);
+            } else {
+              log(`✅ Profile loaded: ${profile.name} (${profile.email})`);
+              log(`📱 Custom links: ${profile.custom_links?.length || 0}`);
+            }
+          }
+        } catch (error) {
+          log(`❌ Test failed: ${error.message}`);
+          log(`Full error: ${JSON.stringify(error, null, 2)}`);
+        }
+      }
+
+      test();
+    </script>
+  </body>
+</html>

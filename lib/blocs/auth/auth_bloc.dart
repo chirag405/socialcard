@@ -67,19 +67,59 @@ class AuthBloc extends Bloc<AuthEvent, app_auth.AuthState> {
       // Check for authorization code in URL (PKCE flow)
       if (uri.queryParameters.containsKey('code')) {
         final code = uri.queryParameters['code'];
-        print('🔗 AuthBloc: Found authorization code: $code');
+        final state = uri.queryParameters['state'];
+        print(
+          '🔗 AuthBloc: Found authorization code: ${code?.substring(0, 20)}...',
+        );
+        print('🔗 AuthBloc: Found state: $state');
 
         // Let Supabase handle the code exchange
-        await supabase.Supabase.instance.client.auth.getSessionFromUrl(uri);
+        final response = await supabase.Supabase.instance.client.auth
+            .getSessionFromUrl(uri);
+
+        if (response.session != null) {
+          print(
+            '🔗 AuthBloc: OAuth session created successfully for user: ${response.session!.user.id}',
+          );
+        } else {
+          print(
+            '🔗 AuthBloc: Warning - OAuth callback processed but no session created',
+          );
+        }
 
         // Clean up the URL by removing the code parameter
         final cleanUrl = '${uri.origin}${uri.path}';
         auth_helper.AuthHelper.replaceUrl(cleanUrl);
 
         print('🔗 AuthBloc: OAuth callback handled, URL cleaned');
+      } else if (uri.fragment.isNotEmpty &&
+          uri.fragment.contains('access_token')) {
+        // Handle implicit flow (access_token in hash)
+        print(
+          '🔗 AuthBloc: Found access_token in URL fragment (implicit flow)',
+        );
+        final response = await supabase.Supabase.instance.client.auth
+            .getSessionFromUrl(uri);
+
+        if (response.session != null) {
+          print(
+            '🔗 AuthBloc: Implicit flow session created successfully for user: ${response.session!.user.id}',
+          );
+        } else {
+          print(
+            '🔗 AuthBloc: Warning - Implicit flow processed but no session created',
+          );
+        }
+
+        // Clean up the URL
+        final cleanUrl = '${uri.origin}${uri.path}';
+        auth_helper.AuthHelper.replaceUrl(cleanUrl);
+      } else {
+        print('🔗 AuthBloc: No OAuth parameters found in URL');
       }
     } catch (e) {
       print('🔗 AuthBloc: Error handling OAuth callback: $e');
+      // Don't throw here as this might be called on every page load
     }
   }
 
