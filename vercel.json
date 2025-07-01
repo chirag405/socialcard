@@ -1,0 +1,58 @@
+{
+  "name": "socialcard-pro",
+  "version": 2,
+  "framework": null,
+  "buildCommand": "flutter build web --release --web-renderer html --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY --dart-define=GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID",
+  "outputDirectory": "build/web",
+  "installCommand": "flutter pub get",
+  "devCommand": "flutter run -d web-server --web-port 3000",
+  "public": false,
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "FLUTTER_WEB_USE_SKIA": "false"
+  },
+  "build": {
+    "env": {
+      "FLUTTER_ROOT": "/opt/flutter",
+      "PUB_CACHE": "/vercel/.pub_cache"
+    }
+  },
+  "functions": {},
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)\\.(js|css|woff2?|ttf|eot|ico|png|jpg|jpeg|gif|svg|webp)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}

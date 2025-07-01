@@ -1,0 +1,62 @@
+# Build outputs (will be built on Vercel)
+build/
+
+# Development files
+.dart_tool/
+.packages
+.metadata
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Platform-specific directories
+android/
+ios/
+linux/
+macos/
+windows/
+
+# Test files
+test/
+
+# Documentation (except deployment guide)
+*.md
+!VERCEL_DEPLOYMENT_GUIDE.md
+!README.md
+
+# Templates and examples
+*.template.*
+web/config.js
+lib/supabase_config.dart
+
+# Local development files
+.env
+.env.local
+*.log
+
+# Native build outputs
+*.apk
+*.ipa
+*.dmg
+*.exe
+
+# Analysis
+analysis_options.yaml
+
+# Scripts (except Vercel build scripts)
+*.ps1
+*.sh
+!build_vercel.ps1
+!build_vercel.sh
+
+# Other deployment configs
+netlify.toml
+
+# Assets that should be included are handled by Flutter build
+# The Flutter build process will copy necessary assets to build/web/ 

@@ -45,6 +45,22 @@
     <title>SocialCard Pro</title>
     <link rel="manifest" href="manifest.json" />
 
+    <!-- Configuration Script -->
+    <script>
+      // Load appropriate configuration based on environment
+      const isProduction =
+        window.location.hostname !== "localhost" &&
+        window.location.hostname !== "127.0.0.1";
+
+      if (isProduction) {
+        // Load production config with environment variables
+        document.write('<script src="config.prod.js"><\/script>');
+      } else {
+        // Load development config
+        document.write('<script src="config.js"><\/script>');
+      }
+    </script>
+
     <style>
       body {
         margin: 0;
