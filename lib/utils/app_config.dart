@@ -1,16 +1,30 @@
+import 'package:flutter/foundation.dart';
+
 class AppConfig {
   // App Configuration
   static const String appName = 'SocialCard Pro';
   static const String appVersion = '1.0.0';
 
-  // Domain Configuration
-  // For development - using localhost
-  static const String baseDomain =
-      'localhost:3000'; // Flutter web development port
-  static const String baseUrl = 'http://$baseDomain';
+  // Domain Configuration - Environment-aware
+  static String get baseDomain {
+    // Check if we're in debug mode (development)
+    if (kDebugMode) {
+      return 'localhost:3000'; // For local development
+    } else {
+      return 'socialcard-pro-app.netlify.app'; // Production domain
+    }
+  }
 
-  // For production, uncomment and update with your domain:
-  // static const String baseDomain = 'socialcard-pro.netlify.app';
+  static String get baseUrl {
+    if (kDebugMode) {
+      return 'http://$baseDomain'; // HTTP for local development
+    } else {
+      return 'https://$baseDomain'; // HTTPS for production
+    }
+  }
+
+  // Alternative: Force production URL (uncomment if you want to always use production)
+  // static const String baseDomain = 'socialcard-pro-app.netlify.app';
   // static const String baseUrl = 'https://$baseDomain';
 
   // When ready to deploy:
@@ -85,7 +99,11 @@ class AppConfig {
   };
 
   // Development/Debug Configuration
-  static const bool isDebugMode = true; // Set to false for production
-  static const bool enableAnalytics = false; // Set to true for production
-  static const bool enableCrashReporting = false; // Set to true for production
+  static bool get isDebugMode => kDebugMode;
+  static const bool enableAnalytics = true; // Enable for production
+  static const bool enableCrashReporting = true; // Enable for production
+
+  // Environment info for debugging
+  static String get environment => kDebugMode ? 'Development' : 'Production';
+  static String get currentUrl => baseUrl;
 }

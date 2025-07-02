@@ -97,3 +97,6 @@ android/build/
 android/app/build/
 ios/Flutter/
 *.lock
+
+# Local Netlify folder
+.netlify
