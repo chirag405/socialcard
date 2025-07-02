@@ -135,9 +135,8 @@ class PresetViewerScreen extends StatelessWidget {
   }
 
   Widget _buildQrPreview(BuildContext context, ThemeData theme) {
-    final previewUrl = AppConfig.generateProfileLink(
-      'preview-${preset.name.toLowerCase().replaceAll(' ', '-')}',
-    );
+    // Use a static preview URL that won't cause database lookup errors
+    const previewUrl = 'https://socialcard-pro-app.netlify.app/preview';
 
     return _buildSection(
       theme: theme,
@@ -198,6 +197,24 @@ class PresetViewerScreen extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'PREVIEW',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -207,7 +224,7 @@ class PresetViewerScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Link Display
+          // Preview Notice
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -217,28 +234,18 @@ class PresetViewerScreen extends StatelessWidget {
             child: Row(
               children: [
                 Icon(
-                  Icons.link,
+                  Icons.info_outline,
                   size: 16,
                   color: theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    previewUrl,
+                    'This is a preview showing how QR codes will look with these settings. Actual QR codes will link to your profile.',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      fontFamily: 'monospace',
                       color: theme.colorScheme.onSurface.withOpacity(0.8),
                     ),
                   ),
-                ),
-                IconButton(
-                  onPressed: () => _copyLink(context, previewUrl),
-                  icon: Icon(
-                    Icons.copy,
-                    size: 18,
-                    color: theme.colorScheme.primary,
-                  ),
-                  tooltip: 'Copy link',
                 ),
               ],
             ),
@@ -433,11 +440,41 @@ class PresetViewerScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        preset.name,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: preset.qrCustomization.foregroundColor,
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              preset.name,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleLarge?.copyWith(
+                                color: preset.qrCustomization.foregroundColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: preset.qrCustomization.foregroundColor
+                                    .withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'STYLE PREVIEW',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelSmall?.copyWith(
+                                  color: preset.qrCustomization.foregroundColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       IconButton(
@@ -478,28 +515,19 @@ class PresetViewerScreen extends StatelessWidget {
                     child: Row(
                       children: [
                         Icon(
-                          Icons.link,
+                          Icons.info_outline,
                           size: 16,
                           color: preset.qrCustomization.foregroundColor,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            data,
+                            'This preview shows your custom styling. Real QR codes will use your actual profile link.',
                             style: Theme.of(
                               context,
                             ).textTheme.bodySmall?.copyWith(
                               color: preset.qrCustomization.foregroundColor,
-                              fontFamily: 'monospace',
                             ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => _copyLink(context, data),
-                          icon: Icon(
-                            Icons.copy,
-                            size: 18,
-                            color: preset.qrCustomization.foregroundColor,
                           ),
                         ),
                       ],
