@@ -38,6 +38,7 @@ class _QrShareModalState extends State<QrShareModal>
 
   bool _showSavePreset = false;
   bool _isSavingPreset = false;
+  bool _isPresetNameValid = false;
 
   @override
   void initState() {
@@ -55,12 +56,25 @@ class _QrShareModalState extends State<QrShareModal>
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
 
+    // Add listener to preset name controller
+    _presetNameController.addListener(_updatePresetNameValidity);
+
     _animationController.forward();
+  }
+
+  void _updatePresetNameValidity() {
+    final isValid = _presetNameController.text.trim().isNotEmpty;
+    if (_isPresetNameValid != isValid) {
+      setState(() {
+        _isPresetNameValid = isValid;
+      });
+    }
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _presetNameController.removeListener(_updatePresetNameValidity);
     _presetNameController.dispose();
     _presetDescriptionController.dispose();
     super.dispose();
@@ -474,9 +488,7 @@ class _QrShareModalState extends State<QrShareModal>
                                     Expanded(
                                       child: FilledButton(
                                         onPressed:
-                                            _presetNameController.text
-                                                    .trim()
-                                                    .isNotEmpty
+                                            _isPresetNameValid
                                                 ? () => _saveAsPreset()
                                                 : null,
                                         child: const Text('Save Preset'),
