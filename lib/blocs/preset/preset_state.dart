@@ -47,24 +47,6 @@ class PresetSaved extends PresetState {
   List<Object> get props => [preset];
 }
 
-class PresetUpdating extends PresetState {
-  final QrPreset preset;
-
-  const PresetUpdating(this.preset);
-
-  @override
-  List<Object> get props => [preset];
-}
-
-class PresetUpdated extends PresetState {
-  final QrPreset preset;
-
-  const PresetUpdated(this.preset);
-
-  @override
-  List<Object> get props => [preset];
-}
-
 class PresetDeleting extends PresetState {
   final String presetId;
 

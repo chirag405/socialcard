@@ -33,15 +33,6 @@ class PresetSaveRequested extends PresetEvent {
   List<Object> get props => [name, description, config];
 }
 
-class PresetUpdateRequested extends PresetEvent {
-  final QrPreset preset;
-
-  const PresetUpdateRequested(this.preset);
-
-  @override
-  List<Object> get props => [preset];
-}
-
 class PresetDeleteRequested extends PresetEvent {
   final String presetId;
 

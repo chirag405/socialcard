@@ -19,7 +19,6 @@ class PresetBloc extends Bloc<PresetEvent, PresetState> {
        super(PresetInitial()) {
     on<PresetLoadRequested>(_onLoadRequested);
     on<PresetSaveRequested>(_onSaveRequested);
-    on<PresetUpdateRequested>(_onUpdateRequested);
     on<PresetDeleteRequested>(_onDeleteRequested);
     on<PresetDuplicateRequested>(_onDuplicateRequested);
     on<PresetSetAsDefaultRequested>(_onSetAsDefaultRequested);
@@ -80,27 +79,6 @@ class PresetBloc extends Bloc<PresetEvent, PresetState> {
       add(PresetLoadRequested(userId));
     } catch (e) {
       emit(PresetError('Failed to save preset: $e'));
-    }
-  }
-
-  Future<void> _onUpdateRequested(
-    PresetUpdateRequested event,
-    Emitter<PresetState> emit,
-  ) async {
-    try {
-      emit(PresetUpdating(event.preset));
-
-      final updatedPreset = event.preset.copyWith(updatedAt: DateTime.now());
-
-      await _localStorageService.updateQrPreset(updatedPreset);
-      emit(PresetUpdated(updatedPreset));
-
-      // Reload presets to get updated list
-      if (_supabaseService.currentUserId != null) {
-        add(PresetLoadRequested(_supabaseService.currentUserId!));
-      }
-    } catch (e) {
-      emit(PresetError('Failed to update preset: $e'));
     }
   }
 
