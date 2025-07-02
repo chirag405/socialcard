@@ -105,6 +105,138 @@ class _QrShareModalState extends State<QrShareModal>
       return;
     }
 
+    // Check if this preset has expiry settings and show warning
+    if (_hasExpirySettings()) {
+      _showPresetLifetimeWarning();
+      return;
+    }
+
+    _proceedWithSaving();
+  }
+
+  bool _hasExpirySettings() {
+    return widget.qrConfig.expirySettings.expiryDate != null ||
+        widget.qrConfig.expirySettings.maxScans != null ||
+        widget.qrConfig.expirySettings.isOneTime;
+  }
+
+  void _showPresetLifetimeWarning() {
+    final expiryInfo = _getExpiryInfo();
+
+    showDialog(
+      context: context,
+      builder:
+          (dialogContext) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.warning_amber, color: Colors.orange),
+                const SizedBox(width: 8),
+                const Text('Preset Lifetime Warning'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'This preset includes expiry settings that may limit its usefulness:',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children:
+                        expiryInfo
+                            .map(
+                              (info) => Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 2,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.schedule,
+                                      size: 16,
+                                      color: Colors.orange,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(child: Text(info)),
+                                  ],
+                                ),
+                              ),
+                            )
+                            .toList(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Recommendation: Consider creating a preset without expiry settings for reusability, or modify the expiry settings before saving.',
+                  style: TextStyle(fontStyle: FontStyle.italic),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  // Go back to editing mode to allow changes
+                  setState(() => _showSavePreset = true);
+                },
+                child: const Text('Modify Settings'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  _proceedWithSaving();
+                },
+                style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+                child: const Text('Save Anyway'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  List<String> _getExpiryInfo() {
+    final List<String> info = [];
+    final expiry = widget.qrConfig.expirySettings;
+
+    if (expiry.expiryDate != null) {
+      final timeLeft = expiry.expiryDate!.difference(DateTime.now());
+      if (timeLeft.isNegative) {
+        info.add('Already expired');
+      } else if (timeLeft.inDays > 0) {
+        info.add('Expires in ${timeLeft.inDays} days');
+      } else if (timeLeft.inHours > 0) {
+        info.add('Expires in ${timeLeft.inHours} hours');
+      } else {
+        info.add('Expires in ${timeLeft.inMinutes} minutes');
+      }
+    }
+
+    if (expiry.maxScans != null) {
+      info.add('Limited to ${expiry.maxScans} scans');
+    }
+
+    if (expiry.isOneTime) {
+      info.add('One-time use only');
+    }
+
+    return info;
+  }
+
+  void _proceedWithSaving() {
     // Use PresetBloc to save the preset
     context.read<PresetBloc>().add(
       PresetSaveRequested(
@@ -326,33 +458,29 @@ class _QrShareModalState extends State<QrShareModal>
                                 },
                                 child: Row(
                                   children: [
-                                    TextButton(
-                                      onPressed:
-                                          () => setState(
+                                    Expanded(
+                                      child: TextButton(
+                                        onPressed: () {
+                                          setState(
                                             () => _showSavePreset = false,
-                                          ),
-                                      child: const Text('Cancel'),
+                                          );
+                                          _presetNameController.clear();
+                                          _presetDescriptionController.clear();
+                                        },
+                                        child: const Text('Cancel'),
+                                      ),
                                     ),
-                                    const Spacer(),
-                                    BlocBuilder<PresetBloc, PresetState>(
-                                      builder: (context, state) {
-                                        final isSaving = state is PresetSaving;
-                                        return ElevatedButton(
-                                          onPressed:
-                                              isSaving ? null : _saveAsPreset,
-                                          child:
-                                              isSaving
-                                                  ? const SizedBox(
-                                                    width: 16,
-                                                    height: 16,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                        ),
-                                                  )
-                                                  : const Text('Save Preset'),
-                                        );
-                                      },
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: FilledButton(
+                                        onPressed:
+                                            _presetNameController.text
+                                                    .trim()
+                                                    .isNotEmpty
+                                                ? () => _saveAsPreset()
+                                                : null,
+                                        child: const Text('Save Preset'),
+                                      ),
                                     ),
                                   ],
                                 ),

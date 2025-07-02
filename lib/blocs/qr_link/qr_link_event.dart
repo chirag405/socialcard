@@ -17,6 +17,15 @@ class QrLinkLoadRequested extends QrLinkEvent {
   List<Object> get props => [userId];
 }
 
+class QrLinkLoadActiveRequested extends QrLinkEvent {
+  final String userId;
+
+  const QrLinkLoadActiveRequested(this.userId);
+
+  @override
+  List<Object> get props => [userId];
+}
+
 class QrLinkCreateRequested extends QrLinkEvent {
   final QrLinkConfig config;
 

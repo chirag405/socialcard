@@ -11,6 +11,7 @@ import '../../widgets/presets_drawer.dart';
 import '../../services/local_storage_service.dart';
 import '../qr/qr_create_screen.dart';
 import '../qr/qr_history_screen.dart';
+import 'active_links_screen.dart';
 import 'profile/profile_edit_screen.dart';
 import 'profile_tab.dart';
 import 'contacts_tab.dart';
@@ -116,6 +117,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 case 'history':
                   _navigateToQrHistory();
                   break;
+                case 'active_links':
+                  _navigateToActiveLinks();
+                  break;
                 case 'settings':
                   // Navigate to settings
                   break;
@@ -147,6 +151,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ListTile(
                       leading: Icon(Icons.history),
                       title: Text('QR History'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'active_links',
+                    child: ListTile(
+                      leading: Icon(Icons.link),
+                      title: Text('Active Links'),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
@@ -270,6 +282,13 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const QrHistoryScreen()),
+    );
+  }
+
+  void _navigateToActiveLinks() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ActiveLinksScreen()),
     );
   }
 

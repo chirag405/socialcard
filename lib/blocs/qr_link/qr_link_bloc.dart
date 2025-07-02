@@ -19,6 +19,7 @@ class QrLinkBloc extends Bloc<QrLinkEvent, QrLinkState> {
        _localStorageService = localStorageService,
        super(QrLinkInitial()) {
     on<QrLinkLoadRequested>(_onLoadRequested);
+    on<QrLinkLoadActiveRequested>(_onLoadActiveRequested);
     on<QrLinkCreateRequested>(_onCreateRequested);
     on<QrLinkUpdateRequested>(_onUpdateRequested);
     on<QrLinkDeleteRequested>(_onDeleteRequested);
@@ -56,6 +57,26 @@ class QrLinkBloc extends Bloc<QrLinkEvent, QrLinkState> {
       );
     } catch (e) {
       emit(QrLinkError('Failed to load QR configurations: $e'));
+    }
+  }
+
+  Future<void> _onLoadActiveRequested(
+    QrLinkLoadActiveRequested event,
+    Emitter<QrLinkState> emit,
+  ) async {
+    emit(QrLinkLoading());
+    try {
+      final configsStream = _supabaseService.getUserQrConfigs(event.userId);
+      final configs = await configsStream.first;
+
+      // Sort by creation date (newest first) and include both active and expired for management
+      final sortedConfigs =
+          configs..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      emit(QrLinkActiveLoaded(sortedConfigs));
+    } catch (e) {
+      print('Error loading active QR configs: $e');
+      emit(QrLinkError('Failed to load active QR configurations: $e'));
     }
   }
 

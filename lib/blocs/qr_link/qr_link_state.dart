@@ -23,6 +23,15 @@ class QrLinkLoaded extends QrLinkState {
   List<Object?> get props => [configs, activeConfig, qrConfigs];
 }
 
+class QrLinkActiveLoaded extends QrLinkState {
+  final List<QrLinkConfig> activeLinks;
+
+  const QrLinkActiveLoaded(this.activeLinks);
+
+  @override
+  List<Object> get props => [activeLinks];
+}
+
 class QrLinkEditing extends QrLinkState {
   final QrLinkConfig config;
   final QrCustomization? customization;
