@@ -8,6 +8,7 @@ import '../../blocs/profile/profile_bloc.dart';
 import '../../blocs/profile/profile_state.dart';
 import '../../models/qr_link_config.dart';
 import '../../models/qr_preset.dart';
+import '../../services/supabase_service.dart';
 import '../../widgets/qr_share_modal.dart';
 import '../../utils/app_config.dart';
 
@@ -195,7 +196,7 @@ class _QrCreateScreenState extends State<QrCreateScreen> {
                 content: Text(state.message),
                 backgroundColor: Colors.red,
                 action:
-                    state.message.contains('already taken')
+                    state.message.contains('already have an active QR code')
                         ? SnackBarAction(
                           label: 'Generate Random',
                           textColor: Colors.white,
@@ -328,6 +329,7 @@ class _QrCreateScreenState extends State<QrCreateScreen> {
                   _slugController.text.isEmpty
                       ? 'preview'
                       : _slugController.text,
+                  userId: context.read<SupabaseService>().currentUserId,
                 ),
                 version: QrVersions.auto,
                 size: 200.0,

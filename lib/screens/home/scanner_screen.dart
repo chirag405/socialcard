@@ -103,10 +103,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   Future<void> _processScanResult(String result) async {
     try {
-      // Parse the QR code result to extract profile slug or URL
-      String? profileSlug = _extractProfileSlug(result);
+      // Parse the QR code result to extract profile info (slug and optional user ID)
+      Map<String, String>? profileInfo = _extractProfileInfo(result);
 
-      if (profileSlug == null) {
+      if (profileInfo == null || !profileInfo.containsKey('slug')) {
         // If not a SocialCard QR, try to open as URL
         if (await canLaunchUrl(Uri.parse(result))) {
           await launchUrl(Uri.parse(result));
@@ -116,11 +116,14 @@ class _ScannerScreenState extends State<ScannerScreen> {
         return;
       }
 
+      final profileSlug = profileInfo['slug']!;
+      final userId = profileInfo['userId']; // Optional user ID
+
       // Show loading
       _showLoadingDialog();
 
       // Fetch the profile from the QR config
-      final profile = await _fetchProfileFromSlug(profileSlug);
+      final profile = await _fetchProfileFromSlug(profileSlug, userId: userId);
 
       if (profile != null) {
         // Hide loading
@@ -141,37 +144,48 @@ class _ScannerScreenState extends State<ScannerScreen> {
     }
   }
 
-  String? _extractProfileSlug(String qrResult) {
+  Map<String, String>? _extractProfileInfo(String qrResult) {
     // Handle different QR formats:
     // 1. Direct slug: "chirag"
-    // 2. Full URL: "https://domain.com/profile?slug=chirag"
-    // 3. Short URL: "https://domain.com/chirag"
+    // 2. Full URL: "https://domain.com/profile?slug=chirag&user=user-id"
+    // 3. Legacy URL: "https://domain.com/profile?slug=chirag"
+    // 4. Short URL: "https://domain.com/chirag"
 
     if (qrResult.contains('http')) {
       final uri = Uri.tryParse(qrResult);
       if (uri != null) {
         // Check for slug parameter
         if (uri.queryParameters.containsKey('slug')) {
-          return uri.queryParameters['slug'];
+          final slug = uri.queryParameters['slug'];
+          final userId = uri.queryParameters['user']; // Optional user ID
+          if (slug != null) {
+            return {'slug': slug, if (userId != null) 'userId': userId};
+          }
         }
-        // Check for slug in path
+        // Check for slug in path (legacy format)
         final pathSegments = uri.pathSegments;
         if (pathSegments.isNotEmpty) {
-          return pathSegments.last;
+          return {'slug': pathSegments.last};
         }
       }
     } else {
-      // Direct slug
-      return qrResult.trim();
+      // Direct slug (legacy format)
+      return {'slug': qrResult.trim()};
     }
 
     return null;
   }
 
-  Future<UserProfile?> _fetchProfileFromSlug(String slug) async {
+  Future<UserProfile?> _fetchProfileFromSlug(
+    String slug, {
+    String? userId,
+  }) async {
     try {
-      // Get QR config by slug
-      final qrConfig = await _supabaseService.getQrConfigBySlug(slug);
+      // Get QR config by slug (and optionally by user ID for disambiguation)
+      final qrConfig = await _supabaseService.getQrConfigBySlug(
+        slug,
+        userId: userId,
+      );
       if (qrConfig == null) return null;
 
       // Get user profile

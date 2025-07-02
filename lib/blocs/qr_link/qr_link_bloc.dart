@@ -107,10 +107,12 @@ class QrLinkBloc extends Bloc<QrLinkEvent, QrLinkState> {
       print('🔗 QR Creation: Checking slug availability...');
       bool isAvailable = await _supabaseService.isSlugAvailable(slug);
       if (!isAvailable) {
-        print('❌ QR Creation Error: Slug "$slug" is not available');
+        print(
+          '❌ QR Creation Error: Slug "$slug" is already used by current user',
+        );
         emit(
           const QrLinkError(
-            'This custom link is already taken. Please choose another.',
+            'You already have an active QR code with this custom link. Please choose another or deactivate the existing one.',
           ),
         );
         return;
@@ -234,8 +236,11 @@ class QrLinkBloc extends Bloc<QrLinkEvent, QrLinkState> {
       if (config != null) {
         emit(QrLinkSharing(config));
 
-        // Generate the share link using app config
-        final shareLink = AppConfig.generateProfileLink(config.linkSlug);
+        // Generate the share link using app config with user ID
+        final shareLink = AppConfig.generateProfileLink(
+          config.linkSlug,
+          userId: config.userId,
+        );
         emit(QrLinkShared(config, shareLink));
       } else {
         emit(const QrLinkError('Configuration not found'));

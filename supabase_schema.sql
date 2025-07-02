@@ -34,7 +34,7 @@ CREATE TABLE custom_links (
 CREATE TABLE qr_configs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    link_slug TEXT UNIQUE NOT NULL,
+    link_slug TEXT NOT NULL,
     description TEXT DEFAULT '',
     selected_link_ids TEXT[] DEFAULT '{}',
     qr_customization JSONB DEFAULT '{}',
@@ -79,6 +79,12 @@ CREATE TABLE saved_contacts (
     notes TEXT,
     UNIQUE(user_id, contact_user_id)
 );
+
+-- Unique constraint: prevent user from having multiple active configs with same slug
+-- This allows different users to have the same slug, but prevents duplicate active slugs per user
+CREATE UNIQUE INDEX idx_qr_configs_user_slug_active 
+ON qr_configs(user_id, link_slug) 
+WHERE is_active = TRUE;
 
 -- Indexes for better performance
 CREATE INDEX idx_users_email ON users(email);

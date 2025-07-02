@@ -11,10 +11,13 @@ class ApiService {
   static const bool _useFunctions = false;
 
   // Get profile data by slug for web viewer
-  static Future<Map<String, dynamic>?> getProfileBySlug(String slug) async {
+  static Future<Map<String, dynamic>?> getProfileBySlug(
+    String slug, {
+    String? userId,
+  }) async {
     if (!_useFunctions) {
       // Use Supabase directly until Functions are deployed
-      return await _getProfileBySlugFromSupabase(slug);
+      return await _getProfileBySlugFromSupabase(slug, userId: userId);
     }
 
     try {
@@ -84,16 +87,23 @@ class ApiService {
 
   // Supabase fallback methods (until Functions are deployed)
   static Future<Map<String, dynamic>?> _getProfileBySlugFromSupabase(
-    String slug,
-  ) async {
+    String slug, {
+    String? userId,
+  }) async {
     try {
-      // Get QR config by slug
-      final qrConfigResponse = await _supabase
+      // Get QR config by slug (and optionally by user ID for disambiguation)
+      var query = _supabase
           .from('qr_configs')
           .select()
           .eq('link_slug', slug)
-          .eq('is_active', true)
-          .limit(1);
+          .eq('is_active', true);
+
+      // If userId is provided, filter by specific user
+      if (userId != null) {
+        query = query.eq('user_id', userId);
+      }
+
+      final qrConfigResponse = await query.limit(1);
 
       if (qrConfigResponse.isEmpty) {
         return null;

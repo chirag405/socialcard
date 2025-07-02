@@ -50,7 +50,7 @@ class QrLinkConfig extends Equatable {
   }
 
   String get shareableLink {
-    return AppConfig.generateProfileLink(linkSlug);
+    return AppConfig.generateProfileLink(linkSlug, userId: userId);
   }
 
   QrLinkConfig copyWith({

@@ -39,11 +39,17 @@ class AppConfig {
   static const String iosBundleId = 'com.example.socialcard';
 
   // Link Generation
-  static String generateProfileLink(String slug) {
+  static String generateProfileLink(String slug, {String? userId}) {
+    if (userId != null) {
+      return '$baseUrl/profile.html?slug=$slug&user=$userId';
+    }
     return '$baseUrl/profile.html?slug=$slug';
   }
 
-  static String generateQrDataUrl(String slug) {
+  static String generateQrDataUrl(String slug, {String? userId}) {
+    if (userId != null) {
+      return '$baseUrl/qr/$slug?user=$userId';
+    }
     return '$baseUrl/qr/$slug';
   }
 
@@ -55,8 +61,8 @@ class AppConfig {
   // Firebase Dynamic Links (if using Firebase Dynamic Links)
   static const String dynamicLinkDomain = 'socialcardpro.page.link';
 
-  static String generateDynamicLink(String slug) {
-    return 'https://$dynamicLinkDomain/?link=${Uri.encodeComponent(generateProfileLink(slug))}'
+  static String generateDynamicLink(String slug, {String? userId}) {
+    return 'https://$dynamicLinkDomain/?link=${Uri.encodeComponent(generateProfileLink(slug, userId: userId))}'
         '&apn=$androidPackageName'
         '&ibi=$iosBundleId'
         '&isi=$iosAppStoreId';

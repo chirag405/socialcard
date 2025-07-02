@@ -423,15 +423,23 @@ class SupabaseService {
     }
   }
 
-  Future<QrLinkConfig?> getQrLinkConfigBySlug(String slug) async {
+  Future<QrLinkConfig?> getQrLinkConfigBySlug(
+    String slug, {
+    String? userId,
+  }) async {
     try {
-      final data =
-          await _client
-              .from('qr_configs')
-              .select()
-              .eq('link_slug', slug)
-              .eq('is_active', true)
-              .maybeSingle();
+      var query = _client
+          .from('qr_configs')
+          .select()
+          .eq('link_slug', slug)
+          .eq('is_active', true);
+
+      // If userId is provided, filter by specific user
+      if (userId != null) {
+        query = query.eq('user_id', userId);
+      }
+
+      final data = await query.maybeSingle();
 
       if (data != null) {
         final config = QrLinkConfig.fromMap({
@@ -540,18 +548,27 @@ class SupabaseService {
     }
   }
 
-  // Check if slug is available
+  // Check if slug is available for the current user
+  // A slug is considered available if the current user doesn't already have an active QR config with that slug
   Future<bool> isSlugAvailable(String slug) async {
     try {
+      if (currentUserId == null) {
+        return false; // User must be authenticated
+      }
+
       final data =
           await _client
               .from('qr_configs')
               .select('id')
               .eq('link_slug', slug)
+              .eq(
+                'user_id',
+                currentUserId!,
+              ) // Only check current user's configs
               .eq('is_active', true)
               .maybeSingle();
 
-      return data == null;
+      return data == null; // Available if current user doesn't have this slug
     } catch (e) {
       return false;
     }
@@ -576,22 +593,25 @@ class SupabaseService {
     }
   }
 
-  // Missing method: createQrLinkConfigWithRetry
+  // Create QR config with collision handling
+  // Since slugs can now be reused across different users, we only retry on actual database errors
   Future<QrLinkConfig> createQrLinkConfigWithRetry(QrLinkConfig config) async {
-    int maxRetries = 5;
+    int maxRetries = 3;
     for (int attempt = 0; attempt < maxRetries; attempt++) {
       try {
         await createQrLinkConfig(config);
         return config; // Return the config after successful creation
       } catch (e) {
-        if (e.toString().contains('slug collision') ||
-            e is SlugCollisionException) {
+        // Only retry on actual database constraint violations (rare race conditions)
+        if (e.toString().contains('duplicate key') ||
+            e.toString().contains('unique constraint') ||
+            e.toString().contains('UNIQUE constraint failed')) {
           if (attempt == maxRetries - 1) {
-            throw SlugCollisionException(
-              'Unable to generate unique slug after $maxRetries attempts',
+            throw Exception(
+              'Unable to create QR config after $maxRetries attempts due to database conflicts',
             );
           }
-          // Generate a new slug and retry
+          // Generate a new slug and retry only on real database conflicts
           config = config.copyWith(linkSlug: _generateRandomSlug());
           continue;
         }
@@ -602,8 +622,8 @@ class SupabaseService {
   }
 
   // Missing method: getQrConfigBySlug (alias for getQrLinkConfigBySlug)
-  Future<QrLinkConfig?> getQrConfigBySlug(String slug) async {
-    return await getQrLinkConfigBySlug(slug);
+  Future<QrLinkConfig?> getQrConfigBySlug(String slug, {String? userId}) async {
+    return await getQrLinkConfigBySlug(slug, userId: userId);
   }
 
   // Missing method: saveScanedContact
