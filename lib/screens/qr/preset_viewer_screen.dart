@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../models/qr_preset.dart';
-import 'qr_create_screen.dart';
+import '../../models/qr_link_config.dart';
+import '../../utils/app_config.dart';
 
 class PresetViewerScreen extends StatelessWidget {
   final QrPreset preset;
@@ -17,45 +20,30 @@ class PresetViewerScreen extends StatelessWidget {
         title: Text(preset.name),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        actions: [
-          FilledButton.icon(
-            onPressed: () => _applyPreset(context),
-            icon: const Icon(Icons.check, size: 18),
-            label: const Text('Use This'),
-            style: FilledButton.styleFrom(
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: theme.colorScheme.onPrimary,
-            ),
-          ),
-          const SizedBox(width: 16),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Preset Header
             _buildPresetHeader(theme),
             const SizedBox(height: 24),
+
+            // QR Code Preview
+            _buildQrPreview(context, theme),
+            const SizedBox(height: 24),
+
+            // QR Customization Preview
             _buildQrCustomizationSection(theme),
             const SizedBox(height: 24),
+
+            // Links Section
             _buildLinksSection(theme),
             const SizedBox(height: 24),
+
+            // Expiry Settings
             _buildExpirySection(theme),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () => _applyPreset(context),
-                icon: const Icon(Icons.qr_code),
-                label: Text('Create QR with "${preset.name}" Settings'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -81,6 +69,7 @@ class PresetViewerScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // QR Preview Icon
           Container(
             width: 60,
             height: 60,
@@ -99,6 +88,8 @@ class PresetViewerScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
+
+          // Preset Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,6 +125,120 @@ class PresetViewerScreen extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQrPreview(BuildContext context, ThemeData theme) {
+    final previewUrl = AppConfig.generateProfileLink(
+      'preview-${preset.name.toLowerCase().replaceAll(' ', '-')}',
+    );
+
+    return _buildSection(
+      theme: theme,
+      title: 'QR Code Preview',
+      icon: Icons.qr_code_2,
+      child: Column(
+        children: [
+          // QR Code Display
+          GestureDetector(
+            onTap: () => _showEnlargedQr(context, previewUrl),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: preset.qrCustomization.backgroundColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.outline.withOpacity(0.2),
+                ),
+              ),
+              child: Column(
+                children: [
+                  QrImageView(
+                    data: previewUrl,
+                    version: QrVersions.auto,
+                    size: 200.0,
+                    backgroundColor: preset.qrCustomization.backgroundColor,
+                    eyeStyle: QrEyeStyle(
+                      eyeShape: _getQrEyeShape(preset.qrCustomization.eyeStyle),
+                      color: preset.qrCustomization.foregroundColor,
+                    ),
+                    dataModuleStyle: QrDataModuleStyle(
+                      dataModuleShape: _getQrDataModuleShape(
+                        preset.qrCustomization.dataModuleStyle,
+                      ),
+                      color: preset.qrCustomization.foregroundColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.touch_app,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Tap to enlarge',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Link Display
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.link,
+                  size: 16,
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    previewUrl,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontFamily: 'monospace',
+                      color: theme.colorScheme.onSurface.withOpacity(0.8),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => _copyLink(context, previewUrl),
+                  icon: Icon(
+                    Icons.copy,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
+                  tooltip: 'Copy link',
                 ),
               ],
             ),
@@ -310,10 +415,133 @@ class PresetViewerScreen extends StatelessWidget {
     }
   }
 
-  void _applyPreset(BuildContext context) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => QrCreateScreen(preset: preset)),
+  void _showEnlargedQr(BuildContext context, String data) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: preset.qrCustomization.backgroundColor,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        preset.name,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: preset.qrCustomization.foregroundColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(
+                          Icons.close,
+                          color: preset.qrCustomization.foregroundColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  QrImageView(
+                    data: data,
+                    version: QrVersions.auto,
+                    size: 300.0,
+                    backgroundColor: preset.qrCustomization.backgroundColor,
+                    eyeStyle: QrEyeStyle(
+                      eyeShape: _getQrEyeShape(preset.qrCustomization.eyeStyle),
+                      color: preset.qrCustomization.foregroundColor,
+                    ),
+                    dataModuleStyle: QrDataModuleStyle(
+                      dataModuleShape: _getQrDataModuleShape(
+                        preset.qrCustomization.dataModuleStyle,
+                      ),
+                      color: preset.qrCustomization.foregroundColor,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: preset.qrCustomization.foregroundColor.withOpacity(
+                        0.1,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.link,
+                          size: 16,
+                          color: preset.qrCustomization.foregroundColor,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            data,
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(
+                              color: preset.qrCustomization.foregroundColor,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => _copyLink(context, data),
+                          icon: Icon(
+                            Icons.copy,
+                            size: 18,
+                            color: preset.qrCustomization.foregroundColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
     );
+  }
+
+  void _copyLink(BuildContext context, String link) {
+    Clipboard.setData(ClipboardData(text: link));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Link copied to clipboard!'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  QrEyeShape _getQrEyeShape(CustomQrEyeStyle style) {
+    switch (style) {
+      case CustomQrEyeStyle.square:
+        return QrEyeShape.square;
+      case CustomQrEyeStyle.circle:
+        return QrEyeShape.circle;
+      case CustomQrEyeStyle.rounded:
+        return QrEyeShape.square; // qr_flutter doesn't have rounded, use square
+    }
+  }
+
+  QrDataModuleShape _getQrDataModuleShape(CustomQrDataModuleStyle style) {
+    switch (style) {
+      case CustomQrDataModuleStyle.square:
+        return QrDataModuleShape.square;
+      case CustomQrDataModuleStyle.circle:
+        return QrDataModuleShape.circle;
+      case CustomQrDataModuleStyle.rounded:
+        return QrDataModuleShape
+            .square; // qr_flutter doesn't have rounded, use square
+    }
   }
 }

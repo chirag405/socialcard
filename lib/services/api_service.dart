@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../utils/app_config.dart';
 
 class ApiService {
-  static const String _baseUrl = AppConfig.baseUrl;
+  static String _baseUrl = AppConfig.baseUrl;
   static final SupabaseClient _supabase = Supabase.instance.client;
 
   // Flag to enable/disable API calls (set to false until Functions are deployed)
