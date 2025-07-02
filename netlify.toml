@@ -7,13 +7,12 @@
   
   # Output directory (Flutter web builds to build/web)
   publish = "build/web"
-  
-  # Build environment
-  environment = { FLUTTER_ROOT = "/opt/flutter", PUB_CACHE = "/opt/flutter/.pub_cache" }
 
 # Production environment variables
 # Set these in Netlify Dashboard: Site Settings → Environment Variables
 [build.environment]
+  FLUTTER_ROOT = "/opt/flutter"
+  PUB_CACHE = "/opt/flutter/.pub_cache"
   SUPABASE_URL = ""        # Add your Supabase URL here
   SUPABASE_ANON_KEY = ""   # Add your Supabase anon key here  
   GOOGLE_CLIENT_ID = ""    # Add your Google OAuth client ID here
@@ -23,7 +22,6 @@
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = {Role = ["admin", "editor"], Country = ["US"]}
 
 # Special handling for QR profile pages
 [[redirects]]
