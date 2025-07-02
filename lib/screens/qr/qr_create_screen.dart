@@ -44,12 +44,13 @@ class _QrCreateScreenState extends State<QrCreateScreen> {
   @override
   void initState() {
     super.initState();
-    // Set default expiry to 5 minutes from now
-    _expiryDate = DateTime.now().add(const Duration(minutes: 5));
 
     // Apply preset settings if provided
     if (widget.preset != null) {
       _applyPresetSettings(widget.preset!);
+    } else {
+      // Set default expiry to 5 minutes from now only if no preset
+      _expiryDate = DateTime.now().add(const Duration(minutes: 5));
     }
   }
 
@@ -66,7 +67,8 @@ class _QrCreateScreenState extends State<QrCreateScreen> {
       // Apply expiry settings
       _hasExpiry =
           preset.expirySettings.expiryDate != null ||
-          preset.expirySettings.maxScans != null;
+          preset.expirySettings.maxScans != null ||
+          preset.expirySettings.isOneTime;
       _expiryDate = preset.expirySettings.expiryDate;
       _maxScans = preset.expirySettings.maxScans;
       _isOneTime = preset.expirySettings.isOneTime;
@@ -89,18 +91,21 @@ class _QrCreateScreenState extends State<QrCreateScreen> {
     print('  - Data style: $_dataModuleStyle');
     print('  - Selected links: ${_selectedLinkIds.length}');
     print('  - Has expiry: $_hasExpiry');
+    print('  - Expiry date: $_expiryDate');
+    print('  - Max scans: $_maxScans');
+    print('  - One time: $_isOneTime');
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Initialize default link selections once when profile is loaded
-    if (!_hasInitializedDefaults) {
+    // Initialize default link selections only if no preset was applied
+    if (!_hasInitializedDefaults && widget.preset == null) {
       final profileState = context.read<ProfileBloc>().state;
       if (profileState is ProfileLoaded) {
         setState(() {
-          // Select all links by default
+          // Select all links by default only when no preset
           _selectedLinkIds =
               profileState.profile.customLinks.map((link) => link.id).toSet();
           _hasInitializedDefaults = true;
@@ -119,7 +124,50 @@ class _QrCreateScreenState extends State<QrCreateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create QR Code'), elevation: 0),
+      appBar: AppBar(
+        title:
+            widget.preset != null
+                ? Text('Create QR - ${widget.preset!.name}')
+                : const Text('Create QR Code'),
+        elevation: 0,
+        actions:
+            widget.preset != null
+                ? [
+                  Container(
+                    margin: const EdgeInsets.only(right: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.bookmark,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Preset Applied',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ]
+                : null,
+      ),
       body: BlocConsumer<QrLinkBloc, QrLinkState>(
         listener: (context, state) {
           if (state is QrLinkCreated) {
@@ -171,6 +219,68 @@ class _QrCreateScreenState extends State<QrCreateScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Show preset info if applied
+                  if (widget.preset != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.bookmark,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Using Preset: ${widget.preset!.name}',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                if (widget.preset!.description.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    widget.preset!.description,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface.withOpacity(0.7),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   _buildQrPreview(),
                   const SizedBox(height: 24),
                   _buildBasicSettings(),
@@ -222,13 +332,13 @@ class _QrCreateScreenState extends State<QrCreateScreen> {
                 version: QrVersions.auto,
                 size: 200.0,
                 backgroundColor: _backgroundColor,
-                eyeStyle: const QrEyeStyle(
-                  eyeShape: QrEyeShape.square,
-                  color: Colors.black,
+                eyeStyle: QrEyeStyle(
+                  eyeShape: _getQrEyeShape(_eyeStyle),
+                  color: _foregroundColor,
                 ),
-                dataModuleStyle: const QrDataModuleStyle(
-                  dataModuleShape: QrDataModuleShape.square,
-                  color: Colors.black,
+                dataModuleStyle: QrDataModuleStyle(
+                  dataModuleShape: _getQrDataModuleShape(_dataModuleStyle),
+                  color: _foregroundColor,
                 ),
               ),
             ),
