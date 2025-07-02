@@ -7,11 +7,14 @@ import '../../blocs/qr_link/qr_link_state.dart';
 import '../../blocs/profile/profile_bloc.dart';
 import '../../blocs/profile/profile_state.dart';
 import '../../models/qr_link_config.dart';
+import '../../models/qr_preset.dart';
 import '../../widgets/qr_share_modal.dart';
 import '../../utils/app_config.dart';
 
 class QrCreateScreen extends StatefulWidget {
-  const QrCreateScreen({super.key});
+  final QrPreset? preset; // Accept preset parameter
+
+  const QrCreateScreen({super.key, this.preset});
 
   @override
   State<QrCreateScreen> createState() => _QrCreateScreenState();
@@ -43,6 +46,49 @@ class _QrCreateScreenState extends State<QrCreateScreen> {
     super.initState();
     // Set default expiry to 5 minutes from now
     _expiryDate = DateTime.now().add(const Duration(minutes: 5));
+
+    // Apply preset settings if provided
+    if (widget.preset != null) {
+      _applyPresetSettings(widget.preset!);
+    }
+  }
+
+  void _applyPresetSettings(QrPreset preset) {
+    print('🎨 Applying preset: ${preset.name}');
+
+    setState(() {
+      // Apply QR customization
+      _foregroundColor = preset.qrCustomization.foregroundColor;
+      _backgroundColor = preset.qrCustomization.backgroundColor;
+      _eyeStyle = preset.qrCustomization.eyeStyle;
+      _dataModuleStyle = preset.qrCustomization.dataModuleStyle;
+
+      // Apply expiry settings
+      _hasExpiry =
+          preset.expirySettings.expiryDate != null ||
+          preset.expirySettings.maxScans != null;
+      _expiryDate = preset.expirySettings.expiryDate;
+      _maxScans = preset.expirySettings.maxScans;
+      _isOneTime = preset.expirySettings.isOneTime;
+
+      // Apply selected links
+      _selectedLinkIds = preset.selectedLinkIds.toSet();
+
+      // Fill description if available
+      if (preset.description.isNotEmpty) {
+        _descriptionController.text = preset.description;
+      }
+
+      _hasInitializedDefaults = true; // Skip default initialization
+    });
+
+    print('🎨 Applied preset settings:');
+    print('  - Foreground: $_foregroundColor');
+    print('  - Background: $_backgroundColor');
+    print('  - Eye style: $_eyeStyle');
+    print('  - Data style: $_dataModuleStyle');
+    print('  - Selected links: ${_selectedLinkIds.length}');
+    print('  - Has expiry: $_hasExpiry');
   }
 
   @override

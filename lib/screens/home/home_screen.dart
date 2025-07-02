@@ -378,12 +378,12 @@ class _HomeScreenState extends State<HomeScreen> {
       builder:
           (context) => PresetsDrawer(
             onPresetSelected: (preset) {
+              print('🎯 Selected preset: ${preset.name}');
               // Navigate to QR create screen with preset data
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const QrCreateScreen(),
-                  // TODO: Pass preset data to pre-fill the form
+                  builder: (context) => QrCreateScreen(preset: preset),
                 ),
               );
             },
