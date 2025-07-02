@@ -219,62 +219,149 @@ class _ScannerScreenState extends State<ScannerScreen> {
       builder:
           (context) => AlertDialog(
             title: Text(profile.name),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (profile.email.isNotEmpty) ...[
+                    Text('Email: ${profile.email}'),
+                    const SizedBox(height: 8),
+                  ],
+                  if (profile.phone != null) ...[
+                    Text('Phone: ${profile.phone}'),
+                    const SizedBox(height: 8),
+                  ],
+                  if (profile.bio != null && profile.bio!.isNotEmpty) ...[
+                    Text('Bio: ${profile.bio}'),
+                    const SizedBox(height: 8),
+                  ],
+                  Text('Links: ${profile.customLinks.length}'),
+                  if (profile.customLinks.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Custom Links:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    ...profile.customLinks.map(
+                      (link) => Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text('• ${link.displayName}: ${link.url}'),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+              // Show save button if not already saved and not own profile
+              if (_supabaseService.currentUserId != profile.id)
+                FutureBuilder<bool>(
+                  future: _contactsService.isContactSaved(profile.id),
+                  builder: (context, snapshot) {
+                    final isAlreadySaved = snapshot.data ?? false;
+
+                    if (isAlreadySaved) {
+                      return TextButton.icon(
+                        onPressed: null,
+                        icon: const Icon(Icons.check, color: Colors.green),
+                        label: const Text(
+                          'Saved',
+                          style: TextStyle(color: Colors.green),
+                        ),
+                      );
+                    }
+
+                    return FilledButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await _showSaveContactDialog(profile);
+                      },
+                      icon: const Icon(Icons.contact_phone),
+                      label: const Text('Save Contact'),
+                    );
+                  },
+                ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _showSaveContactDialog(UserProfile profile) async {
+    final notesController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Save Contact'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (profile.profileImageUrl != null)
-                  Center(
-                    child: CircleAvatar(
-                      radius: 40,
-                      backgroundImage: NetworkImage(profile.profileImageUrl!),
-                      onBackgroundImageError: (exception, stackTrace) {
-                        // Handle image loading errors (like 429 rate limit)
-                        debugPrint(
-                          'Scanner profile image failed to load: $exception',
-                        );
-                      },
-                      backgroundColor: Colors.grey.shade200,
-                      child: null, // Will show initials if image fails
-                    ),
-                  ),
+                Text('Save ${profile.name} to your contacts?'),
                 const SizedBox(height: 16),
-                if (profile.bio != null) ...[
-                  Text(profile.bio!),
-                  const SizedBox(height: 8),
-                ],
-                if (profile.email.isNotEmpty) Text('Email: ${profile.email}'),
-                if (profile.phone != null) Text('Phone: ${profile.phone}'),
-                Text('Links: ${profile.customLinks.length}'),
-                const SizedBox(height: 8),
-                const Text(
-                  '✅ Contact saved to your contacts!',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
+                TextField(
+                  controller: notesController,
+                  decoration: const InputDecoration(
+                    labelText: 'Notes (optional)',
+                    hintText: 'Add personal notes about this contact...',
+                    border: OutlineInputBorder(),
                   ),
+                  maxLines: 3,
                 ),
               ],
             ),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pop(); // Go back to home
-                },
-                child: const Text('Close'),
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
               ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pop(); // Go back to home
-                  // TODO: Navigate to full profile view
-                },
-                child: const Text('View Full Profile'),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Save'),
               ),
             ],
           ),
     );
+
+    if (result == true) {
+      try {
+        _showLoadingDialog();
+
+        await _contactsService.saveScannedContact(
+          profile.id,
+          notes:
+              notesController.text.trim().isNotEmpty
+                  ? notesController.text.trim()
+                  : null,
+        );
+
+        Navigator.of(context).pop(); // Close loading dialog
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${profile.name} saved to contacts!'),
+            backgroundColor: Colors.green,
+            action: SnackBarAction(
+              label: 'View Contacts',
+              textColor: Colors.white,
+              onPressed: () {
+                // Navigate to contacts tab
+                DefaultTabController.of(context)?.animateTo(1);
+              },
+            ),
+          ),
+        );
+      } catch (e) {
+        Navigator.of(context).pop(); // Close loading dialog
+        _showError('Failed to save contact: $e');
+      }
+    }
   }
 
   void _showError(String message) {

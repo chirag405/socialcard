@@ -5,6 +5,7 @@ import '../../services/supabase_service.dart';
 import '../../services/local_storage_service.dart';
 import 'preset_event.dart';
 import 'preset_state.dart';
+import 'package:flutter/foundation.dart';
 
 class PresetBloc extends Bloc<PresetEvent, PresetState> {
   final SupabaseService _supabaseService;
@@ -30,6 +31,9 @@ class PresetBloc extends Bloc<PresetEvent, PresetState> {
   ) async {
     emit(PresetLoading());
     try {
+      // First, clean up any expired presets
+      await _cleanupExpiredPresets(event.userId);
+
       final presets = await _localStorageService.getAllQrPresets(event.userId);
 
       // Find default preset
@@ -45,6 +49,48 @@ class PresetBloc extends Bloc<PresetEvent, PresetState> {
     } catch (e) {
       emit(PresetError('Failed to load presets: $e'));
     }
+  }
+
+  /// Clean up expired presets before loading
+  Future<void> _cleanupExpiredPresets(String userId) async {
+    try {
+      final allPresets = await _localStorageService.getAllQrPresets(userId);
+      final expiredPresets = <QrPreset>[];
+
+      for (final preset in allPresets) {
+        if (_isPresetExpired(preset)) {
+          expiredPresets.add(preset);
+        }
+      }
+
+      // Delete expired presets
+      for (final preset in expiredPresets) {
+        await _localStorageService.deleteQrPreset(preset.id);
+        debugPrint('🗑️ Auto-removed expired preset: ${preset.name}');
+      }
+
+      if (expiredPresets.isNotEmpty) {
+        debugPrint('✅ Cleaned up ${expiredPresets.length} expired presets');
+      }
+    } catch (e) {
+      debugPrint('Error cleaning up expired presets: $e');
+      // Don't fail the load operation if cleanup fails
+    }
+  }
+
+  /// Check if a preset has expired based on its expiry settings
+  bool _isPresetExpired(QrPreset preset) {
+    final expiry = preset.expirySettings;
+    final now = DateTime.now();
+
+    // Check if expiry date has passed
+    if (expiry.expiryDate != null && now.isAfter(expiry.expiryDate!)) {
+      return true;
+    }
+
+    // Don't auto-remove presets based on scan count as they might be reused
+    // Only remove based on time expiry
+    return false;
   }
 
   Future<void> _onSaveRequested(

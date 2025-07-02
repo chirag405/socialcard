@@ -38,6 +38,8 @@ After expiration, link/QR auto-invalidates.
 
 Backend checks expiry before displaying profile and refuses invalid ones.
 
+**Automatic cleanup**: Expired presets and QR links are automatically removed from UI and database.
+
 2. 📱 Contact Integration & Discovery
    **Import phone contacts**: Access device contacts with permission.
 
@@ -48,6 +50,8 @@ Backend checks expiry before displaying profile and refuses invalid ones.
 **Contact sync**: Show which contacts are on SocialCard with their profiles.
 
 **Invite non-users**: Easy sharing to invite contacts not on the app.
+
+**Enhanced contact saving**: When scanning QR codes in-app, users can save contacts with personal notes and easy access to their contact list.
 
 3. 🧩 Dynamic Custom Links
    Add unlimited custom slots (URL, name, icon).
@@ -90,6 +94,10 @@ BLoC triggers rebuilds upon customization.
 
 **Preset management**: Edit, duplicate, or delete saved presets.
 
+**Link preview**: Presets show preview of generated link format with copy functionality.
+
+**Auto-expiration**: Expired presets are automatically cleaned up when loading preset list.
+
 6. 🔗 Shareable Link & QR
    **Unified sharing**: Both QR and link generated together.
 
@@ -116,6 +124,14 @@ Quick preview of profile (only selected socials shown).
 
 Then option to revisit link.
 
+**Enhanced Web Experience**:
+
+- **Mobile Detection**: Automatically detects if user is on mobile vs desktop
+- **Mobile App Redirection**: On mobile, shows modal asking "Open in App?" vs "Continue in Web"
+- **Deep Link Integration**: Properly redirects to app stores if app not installed
+- **App Advertisement**: Shows app download CTA for non-logged users or desktop users
+- **User Authentication Detection**: Different experience for logged-in vs guest users
+
 8. 📂 Local-first Saved Contacts
    When scanning/linking profiles, they can be saved locally.
 
@@ -126,6 +142,13 @@ List view mimics native Contacts app.
 Reload icon appears next to entries if the remote user has updated their info—on tap, it fetches fresh data.
 
 Animated list: tap-to-expand with icon scaling ripple.
+
+**Enhanced Saving Experience**:
+
+- **In-app Contact Dialog**: Rich contact preview with save option and notes field
+- **Contact Status Indication**: Shows if contact is already saved with green checkmark
+- **Quick Access**: "View Contacts" button in save confirmation to navigate directly to contacts tab
+- **Personal Notes**: Add custom notes when saving contacts for better organization
 
 ⚙️ Design & UX
 Modern card-based layout with rounded corners, drop shadows.
@@ -142,6 +165,12 @@ Responsive tabs: switch between "My Profile" and "Scanned Contacts".
 
 **Swappable tabs**: User can reorder tabs as preferred.
 
+**Platform-Adaptive UI**:
+
+- Mobile-optimized profile viewing with app redirection options
+- Desktop-friendly layouts with appropriate app advertisements
+- Responsive design adapting to different screen sizes and platforms
+
 🧩 Architecture & State Management
 flutter_bloc + equatable for UI/data separation.
 
@@ -153,7 +182,7 @@ ProfileBloc: manages profile CRUD + privacy settings.
 
 QrLinkBloc: custom QR/link creation and expiry logic.
 
-PresetBloc: manages saved QR/link presets.
+PresetBloc: manages saved QR/link presets + auto-cleanup of expired presets.
 
 ScanBloc: scanning/deep link handling + saving contacts.
 
@@ -209,19 +238,39 @@ flutter_local_notifications (optional reminders for expiry)
    - Customize QR appearance
    - Generate both QR and link together
    - Save as preset for future use
+   - Preview generated link format
 
-5. **Sharing**
+5. **Sharing & Viewing**
 
    - Share QR code image or link via system share
+   - **Platform-Specific Viewing**:
+     - **Desktop + Logged In**: Show profile with subtle app advertisement
+     - **Desktop + Not Logged In**: Show profile with prominent app advertisement
+     - **Mobile + Logged In**: Show profile directly in web
+     - **Mobile + Not Logged In**: Show "Open in App?" modal first
    - Recipients see only selected social links
    - Respect expiration rules
    - Deep linking opens app if installed
 
 6. **Contact Management**
+
    - View imported contacts on app
-   - Scan others' QR codes to save
+   - **Enhanced QR Scanning**:
+     - Rich profile preview dialog
+     - One-click save with notes option
+     - Contact status indication (already saved vs new)
+     - Quick navigation to contacts list
    - Receive update notifications
-   - Manage local contact database
+   - Manage local contact database with personal notes
+
+7. **Preset Management**
+   - **Enhanced Preset Viewer**:
+     - Preview of generated link format with copy functionality
+     - Detailed breakdown of included links and settings
+     - Visual QR customization preview
+     - Expiration settings display
+   - **Auto-Cleanup**: Expired presets automatically removed from UI
+   - Edit, duplicate, and organize presets efficiently
 
 🎨 Design Principles
 
@@ -230,3 +279,5 @@ flutter_local_notifications (optional reminders for expiry)
 - **Efficiency**: Save presets for quick generation
 - **Simplicity**: Despite features, UI remains clean
 - **Unified**: QR and link always generated together
+- **Platform-Aware**: Adaptive experience based on device and user state
+- **Contact-Focused**: Streamlined contact saving and management experience

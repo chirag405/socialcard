@@ -42,6 +42,10 @@ class PresetViewerScreen extends StatelessWidget {
             _buildLinksSection(theme),
             const SizedBox(height: 24),
 
+            // Generated Link Preview
+            _buildGeneratedLinkSection(theme),
+            const SizedBox(height: 24),
+
             // Expiry Settings
             _buildExpirySection(theme),
           ],
@@ -310,10 +314,135 @@ class PresetViewerScreen extends StatelessWidget {
       theme: theme,
       title: 'Included Links',
       icon: Icons.link,
-      child: _buildSettingRow(
-        theme: theme,
-        label: 'Number of Links',
-        value: Text('${preset.selectedLinkIds.length} links'),
+      child: Column(
+        children: [
+          _buildSettingRow(
+            theme: theme,
+            label: 'Number of Links',
+            value: Text('${preset.selectedLinkIds.length} links'),
+          ),
+          if (preset.selectedLinkIds.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withOpacity(
+                  0.5,
+                ),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'When this preset is used, only the selected ${preset.selectedLinkIds.length} link${preset.selectedLinkIds.length > 1 ? 's' : ''} will be shared.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGeneratedLinkSection(ThemeData theme) {
+    return _buildSection(
+      theme: theme,
+      title: 'Generated Link Preview',
+      icon: Icons.link_rounded,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: theme.colorScheme.outline.withOpacity(0.2),
+              ),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.preview,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Link Format Preview',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: theme.colorScheme.outline.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${AppConfig.baseUrl}/your-custom-slug',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontFamily: 'monospace',
+                            color: theme.colorScheme.onSurface.withOpacity(0.8),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          Clipboard.setData(
+                            ClipboardData(
+                              text: '${AppConfig.baseUrl}/your-custom-slug',
+                            ),
+                          );
+                        },
+                        icon: Icon(
+                          Icons.copy,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                        tooltip: 'Copy preview link',
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'When creating a QR/link with this preset, you\'ll be able to customize the slug part of the URL.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
