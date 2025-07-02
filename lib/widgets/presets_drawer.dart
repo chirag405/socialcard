@@ -22,8 +22,11 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
     // Load presets when drawer opens
     final supabaseService = SupabaseService();
     final userId = supabaseService.currentUserId;
+    print('🔧 PresetsDrawer: Loading presets for user: $userId');
     if (userId != null) {
       context.read<PresetBloc>().add(PresetLoadRequested(userId));
+    } else {
+      print('❌ PresetsDrawer: No user ID found');
     }
   }
 
@@ -78,12 +81,15 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
           Expanded(
             child: BlocBuilder<PresetBloc, PresetState>(
               builder: (context, state) {
+                print('🔧 PresetsDrawer: Current state: ${state.runtimeType}');
+
                 if (state is PresetLoading) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
                 if (state is PresetLoaded) {
                   final presets = state.presets;
+                  print('🔧 PresetsDrawer: Loaded ${presets.length} presets');
 
                   if (presets.isEmpty) {
                     return _buildEmptyState(theme);
@@ -100,6 +106,7 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
                 }
 
                 if (state is PresetError) {
+                  print('❌ PresetsDrawer: Error: ${state.message}');
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -138,6 +145,22 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
                   );
                 }
 
+                // Handle other states (PresetSaved, PresetUpdated, etc.)
+                if (state is PresetSaved ||
+                    state is PresetUpdated ||
+                    state is PresetDeleted) {
+                  // Trigger reload
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    final supabaseService = SupabaseService();
+                    final userId = supabaseService.currentUserId;
+                    if (userId != null) {
+                      context.read<PresetBloc>().add(
+                        PresetLoadRequested(userId),
+                      );
+                    }
+                  });
+                }
+
                 return _buildEmptyState(theme);
               },
             ),
@@ -163,7 +186,7 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Tap a preset to use it for new QR codes',
+                    'Create a QR code and save it as a preset to reuse settings',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurface.withOpacity(0.6),
                     ),
@@ -199,9 +222,18 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Create a QR code and save it as a preset to see it here.',
+              'Create a QR code and save it as a preset to quickly reuse your favorite settings.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.5),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '💡 Tip: After creating a QR code, tap "Save as Preset" to store it here',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.primary.withOpacity(0.7),
+                fontStyle: FontStyle.italic,
               ),
               textAlign: TextAlign.center,
             ),
@@ -224,6 +256,15 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
         onTap: () {
           Navigator.of(context).pop();
           widget.onPresetSelected(preset);
+
+          // Show feedback
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Applied preset: ${preset.name}'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
         },
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -292,121 +333,34 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
                             color: theme.colorScheme.onSurface.withOpacity(0.5),
                           ),
                         ),
+                        const Spacer(),
+                        Text(
+                          'Tap to use',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.primary.withOpacity(0.7),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
 
-              // Actions Menu
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  switch (value) {
-                    case 'edit':
-                      _showEditPresetDialog(context, preset);
-                      break;
-                    case 'delete':
-                      _showDeleteConfirmation(context, preset);
-                      break;
-                  }
-                },
-                itemBuilder:
-                    (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: ListTile(
-                          leading: Icon(Icons.edit, size: 20),
-                          title: Text('Edit'),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: ListTile(
-                          leading: Icon(
-                            Icons.delete,
-                            color: Colors.red,
-                            size: 20,
-                          ),
-                          title: Text(
-                            'Delete',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
-                    ],
+              // Simple Delete Button (only action needed)
+              IconButton(
+                onPressed: () => _showDeleteConfirmation(context, preset),
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: theme.colorScheme.error.withOpacity(0.7),
+                  size: 20,
+                ),
+                tooltip: 'Delete preset',
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  void _showEditPresetDialog(BuildContext context, QrPreset preset) {
-    final nameController = TextEditingController(text: preset.name);
-    final descriptionController = TextEditingController(
-      text: preset.description,
-    );
-
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Edit Preset'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Preset Name',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (optional)',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 2,
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  if (nameController.text.trim().isNotEmpty) {
-                    final updatedPreset = preset.copyWith(
-                      name: nameController.text.trim(),
-                      description: descriptionController.text.trim(),
-                      updatedAt: DateTime.now(),
-                    );
-
-                    context.read<PresetBloc>().add(
-                      PresetUpdateRequested(updatedPreset),
-                    );
-                    Navigator.pop(context);
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Preset updated successfully!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          ),
     );
   }
 
@@ -416,7 +370,9 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
       builder:
           (context) => AlertDialog(
             title: const Text('Delete Preset'),
-            content: Text('Are you sure you want to delete "${preset.name}"?'),
+            content: Text(
+              'Are you sure you want to delete "${preset.name}"?\n\nThis action cannot be undone.',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -433,6 +389,7 @@ class _PresetsDrawerState extends State<PresetsDrawer> {
                     SnackBar(
                       content: Text('Preset "${preset.name}" deleted'),
                       backgroundColor: Colors.orange,
+                      duration: const Duration(seconds: 3),
                     ),
                   );
                 },

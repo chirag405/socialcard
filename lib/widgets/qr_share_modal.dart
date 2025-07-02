@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../models/qr_link_config.dart';
 import '../models/qr_preset.dart';
+import '../blocs/preset/preset_bloc.dart';
+import '../blocs/preset/preset_event.dart';
+import '../blocs/preset/preset_state.dart';
 import '../services/local_storage_service.dart';
 
 class QrShareModal extends StatefulWidget {
@@ -26,7 +30,8 @@ class _QrShareModalState extends State<QrShareModal>
     with TickerProviderStateMixin {
   final GlobalKey _qrKey = GlobalKey();
   final TextEditingController _presetNameController = TextEditingController();
-  final LocalStorageService _localStorage = LocalStorageService();
+  final TextEditingController _presetDescriptionController =
+      TextEditingController();
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
@@ -57,6 +62,7 @@ class _QrShareModalState extends State<QrShareModal>
   void dispose() {
     _animationController.dispose();
     _presetNameController.dispose();
+    _presetDescriptionController.dispose();
     super.dispose();
   }
 
@@ -88,7 +94,7 @@ class _QrShareModalState extends State<QrShareModal>
     );
   }
 
-  Future<void> _saveAsPreset() async {
+  void _saveAsPreset() {
     if (_presetNameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -99,45 +105,26 @@ class _QrShareModalState extends State<QrShareModal>
       return;
     }
 
-    setState(() => _isSavingPreset = true);
-
-    try {
-      final preset = QrPreset(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+    // Use PresetBloc to save the preset
+    context.read<PresetBloc>().add(
+      PresetSaveRequested(
         name: _presetNameController.text.trim(),
-        userId: widget.qrConfig.userId,
-        selectedLinkIds: widget.qrConfig.selectedLinkIds,
-        qrCustomization: widget.qrConfig.qrCustomization,
-        expirySettings: widget.qrConfig.expirySettings,
-        description: widget.qrConfig.description,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
+        description: _presetDescriptionController.text.trim(),
+        config: widget.qrConfig,
+      ),
+    );
 
-      // Save to local storage first (Local-First approach)
-      await _localStorage.saveQrPreset(preset);
+    // Close the modal
+    Navigator.of(context).pop();
 
-      // Notify parent widget
-      widget.onSavePreset(preset);
-
-      Navigator.of(context).pop();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Preset saved successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to save preset: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      setState(() => _isSavingPreset = false);
-    }
+    // Show success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Preset "${_presetNameController.text.trim()}" saved!'),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -163,7 +150,12 @@ class _QrShareModalState extends State<QrShareModal>
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.colorScheme.primary,
+                        theme.colorScheme.primary.withOpacity(0.8),
+                      ],
+                    ),
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(20),
                       topRight: Radius.circular(20),
@@ -172,31 +164,36 @@ class _QrShareModalState extends State<QrShareModal>
                   child: Row(
                     children: [
                       Icon(
-                        Icons.qr_code,
-                        color: theme.colorScheme.primary,
+                        Icons.qr_code_2,
+                        color: theme.colorScheme.onPrimary,
                         size: 28,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'QR Code Created!',
+                          'QR Code Ready!',
                           style: theme.textTheme.headlineSmall?.copyWith(
+                            color: theme.colorScheme.onPrimary,
                             fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.primary,
                           ),
                         ),
                       ),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close),
+                        icon: Icon(
+                          Icons.close,
+                          color: theme.colorScheme.onPrimary,
+                        ),
                       ),
                     ],
                   ),
                 ),
 
+                // Content
                 Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // QR Code Display
                       Container(
@@ -204,33 +201,33 @@ class _QrShareModalState extends State<QrShareModal>
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                          border: Border.all(
+                            color: theme.colorScheme.outline.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            RepaintBoundary(
+                              key: _qrKey,
+                              child: widget.qrWidget,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              widget.qrConfig.shareableLink,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                  0.6,
+                                ),
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
-                        ),
-                        child: RepaintBoundary(
-                          key: _qrKey,
-                          child: widget.qrWidget,
                         ),
                       ),
 
                       const SizedBox(height: 20),
-
-                      // Description
-                      if (widget.qrConfig.description.isNotEmpty == true) ...[
-                        Text(
-                          widget.qrConfig.description,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.7),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 20),
-                      ],
 
                       // Action Buttons
                       Row(
@@ -240,11 +237,6 @@ class _QrShareModalState extends State<QrShareModal>
                               onPressed: _copyLink,
                               icon: const Icon(Icons.copy),
                               label: const Text('Copy Link'),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -253,13 +245,6 @@ class _QrShareModalState extends State<QrShareModal>
                               onPressed: _shareQr,
                               icon: const Icon(Icons.share),
                               label: const Text('Share'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: theme.colorScheme.primary,
-                                foregroundColor: theme.colorScheme.onPrimary,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                              ),
                             ),
                           ),
                         ],
@@ -306,33 +291,71 @@ class _QrShareModalState extends State<QrShareModal>
                                     vertical: 8,
                                   ),
                                 ),
+                                textCapitalization: TextCapitalization.words,
+                              ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: _presetDescriptionController,
+                                decoration: InputDecoration(
+                                  hintText: 'Description (optional)',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                ),
+                                maxLines: 2,
                               ),
                               const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  TextButton(
-                                    onPressed:
-                                        () => setState(
-                                          () => _showSavePreset = false,
+                              BlocListener<PresetBloc, PresetState>(
+                                listener: (context, state) {
+                                  if (state is PresetSaved) {
+                                    widget.onSavePreset(state.preset);
+                                  } else if (state is PresetError) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Failed to save preset: ${state.message}',
                                         ),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  const Spacer(),
-                                  ElevatedButton(
-                                    onPressed:
-                                        _isSavingPreset ? null : _saveAsPreset,
-                                    child:
-                                        _isSavingPreset
-                                            ? const SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                              ),
-                                            )
-                                            : const Text('Save Preset'),
-                                  ),
-                                ],
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Row(
+                                  children: [
+                                    TextButton(
+                                      onPressed:
+                                          () => setState(
+                                            () => _showSavePreset = false,
+                                          ),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    const Spacer(),
+                                    BlocBuilder<PresetBloc, PresetState>(
+                                      builder: (context, state) {
+                                        final isSaving = state is PresetSaving;
+                                        return ElevatedButton(
+                                          onPressed:
+                                              isSaving ? null : _saveAsPreset,
+                                          child:
+                                              isSaving
+                                                  ? const SizedBox(
+                                                    width: 16,
+                                                    height: 16,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                        ),
+                                                  )
+                                                  : const Text('Save Preset'),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
