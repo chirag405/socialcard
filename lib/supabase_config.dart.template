@@ -2,6 +2,11 @@
 ///
 /// This file reads from the centralized config.json file
 /// All secrets and configuration are managed in one place
+///
+/// ⚠️  SETUP INSTRUCTIONS:
+/// 1. Copy this file to 'supabase_config.dart' (remove .template extension)
+/// 2. Replace all 'YOUR_*_HERE' placeholders with your actual credentials
+/// 3. Never commit the real supabase_config.dart file to version control
 
 class SupabaseConfig {
   // ===== ENVIRONMENT-BASED CONFIGURATION =====
@@ -10,21 +15,19 @@ class SupabaseConfig {
   /// Supabase URL - from environment or development fallback
   static const String supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
-    defaultValue: 'https://jcovcivzcqgfxcxlzjfp.supabase.co',
+    defaultValue: 'YOUR_SUPABASE_URL_HERE', // Replace with: https://your-project.supabase.co
   );
 
   /// Supabase Anon Key - from environment or development fallback
   static const String supabaseAnonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
-    defaultValue:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impjb3ZjaXZ6Y3FnZnhjeGx6amZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1OTQyOTIsImV4cCI6MjA2NjE3MDI5Mn0.vjBWFwyd1tQFbTCWN5K2mouQyVAgMx1AdvNG1CpP5D8',
+    defaultValue: 'YOUR_SUPABASE_ANON_KEY_HERE', // Replace with your anon key from Supabase Dashboard
   );
 
   /// Google Client ID - from environment or development fallback
   static const String googleClientIdWeb = String.fromEnvironment(
     'GOOGLE_CLIENT_ID',
-    defaultValue:
-        '223999169006-e6kou76mhs1b592s6k57trgi899lscc3.apps.googleusercontent.com',
+    defaultValue: 'YOUR_GOOGLE_CLIENT_ID_HERE', // Replace with your Google OAuth client ID
   );
 
   // ===== APP CONFIGURATION =====
@@ -103,6 +106,10 @@ Current status:
 - Supabase URL: ${supabaseUrl.startsWith('https://') ? '✅' : '❌'} 
 - Anon Key: ${supabaseAnonKey.length > 20 ? '✅' : '❌'}
 - Google Client: ${googleClientIdWeb != 'YOUR_GOOGLE_CLIENT_ID_HERE' ? '✅' : '❌'}
+
+⚠️  IMPORTANT SECURITY NOTE:
+Replace the placeholder values with your actual credentials.
+Never commit real secrets to version control!
 ''');
     }
 
@@ -112,4 +119,4 @@ Current status:
       print('⚠️  Warning: Some configuration may be missing');
     }
   }
-}
+} 
